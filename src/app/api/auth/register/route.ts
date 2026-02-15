@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+
 // SECURITY: This endpoint is RESTRICTED to admin users only
 // Public registration is DISABLED - all users must be created by a PRINCIPAL
 

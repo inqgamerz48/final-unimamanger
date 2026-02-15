@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createGradeSchema } from '@/lib/validations'
 
+export const dynamic = 'force-dynamic'
+
 // Helper to verify faculty
 async function verifyFaculty(request: NextRequest) {
   const firebaseUid = request.headers.get('x-firebase-uid')

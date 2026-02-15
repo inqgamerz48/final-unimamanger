@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+
 // Helper to verify admin
 async function verifyAdmin(request: NextRequest) {
   const firebaseUid = request.headers.get('x-firebase-uid')
