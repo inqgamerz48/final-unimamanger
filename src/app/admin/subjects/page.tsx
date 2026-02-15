@@ -170,10 +170,10 @@ export default function AdminSubjects() {
                   </div>
                   <div className="space-y-2 md:col-span-2">
                     <Label className="text-white/70">Assigned Faculty</Label>
-                    <Select value={formData.facultyId} onValueChange={(v) => setFormData({ ...formData, facultyId: v })}>
+                    <Select value={formData.facultyId || 'none'} onValueChange={(v) => setFormData({ ...formData, facultyId: v === 'none' ? '' : v })}>
                       <SelectTrigger className="bg-white/5 border-white/10"><SelectValue placeholder="Select faculty (optional)" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Unassigned</SelectItem>
+                        <SelectItem value="none">Unassigned</SelectItem>
                         {faculty.map((f) => (<SelectItem key={f.id} value={f.id}>{f.fullName}</SelectItem>))}
                       </SelectContent>
                     </Select>

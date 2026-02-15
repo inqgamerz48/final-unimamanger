@@ -256,14 +256,14 @@ export default function AdminDepartments() {
                   <div className="space-y-2">
                     <Label className="text-white/70">Head of Department (HOD)</Label>
                     <Select
-                      value={formData.hodId}
-                      onValueChange={(value) => setFormData({ ...formData, hodId: value })}
+                      value={formData.hodId || 'none'}
+                      onValueChange={(value) => setFormData({ ...formData, hodId: value === 'none' ? '' : value })}
                     >
                       <SelectTrigger className="bg-white/5 border-white/10 text-white">
                         <SelectValue placeholder="Select HOD" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Not Assigned</SelectItem>
+                        <SelectItem value="none">Not Assigned</SelectItem>
                         {facultyUsers.map((faculty) => (
                           <SelectItem key={faculty.id} value={faculty.id}>
                             {faculty.fullName} ({faculty.role})
@@ -338,14 +338,14 @@ export default function AdminDepartments() {
                   <div className="space-y-2">
                     <Label className="text-white/70">Head of Department (HOD)</Label>
                     <Select
-                      value={formData.hodId}
-                      onValueChange={(value) => setFormData({ ...formData, hodId: value })}
+                      value={formData.hodId || 'none'}
+                      onValueChange={(value) => setFormData({ ...formData, hodId: value === 'none' ? '' : value })}
                     >
                       <SelectTrigger className="bg-white/5 border-white/10 text-white">
                         <SelectValue placeholder="Select HOD" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Not Assigned</SelectItem>
+                        <SelectItem value="none">Not Assigned</SelectItem>
                         {facultyUsers.map((faculty) => (
                           <SelectItem key={faculty.id} value={faculty.id}>
                             {faculty.fullName} ({faculty.role})

@@ -196,10 +196,10 @@ export default function AdminNotices() {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-white/70">Department</Label>
-                    <Select value={formData.departmentId} onValueChange={(v) => setFormData({ ...formData, departmentId: v })}>
+                    <Select value={formData.departmentId || 'all'} onValueChange={(v) => setFormData({ ...formData, departmentId: v === 'all' ? '' : v })}>
                       <SelectTrigger className="bg-white/5 border-white/10"><SelectValue placeholder="All departments" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All Departments</SelectItem>
+                        <SelectItem value="all">All Departments</SelectItem>
                         {departments.map((d) => (
                           <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
                         ))}
