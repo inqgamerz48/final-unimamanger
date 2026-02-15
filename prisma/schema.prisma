@@ -1,0 +1,260 @@
+// Prisma Schema for University Management System
+// MVP Version
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  PRINCIPAL
+  HOD
+  FACULTY
+  STUDENT
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum ExamType {
+  MST1
+  MST2
+  FINAL
+}
+
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum ComplaintStatus {
+  PENDING
+  IN_PROGRESS
+  RESOLVED
+  REJECTED
+}
+
+enum FeeStatus {
+  PENDING
+  PAID
+  OVERDUE
+}
+
+model User {
+  id            String    @id @default(cuid())
+  firebaseUid   String    @unique
+  email         String    @unique
+  fullName      String
+  role          Role      @default(STUDENT)
+  departmentId  String?
+  department    Department? @relation(fields: [departmentId], references: [id])
+  isActive      Boolean   @default(true)
+  phone         String?
+  studentId     String?   @unique // Custom student ID like 24UNI-CSE-001
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  hodOf         Department?
+  subjects      Subject[]
+  enrollments   Enrollment[]
+  assignments   Assignment[]
+  submissions   Submission[]
+  attendances   Attendance[]
+  grades        Grade[]
+  notices       Notice[]
+  complaints    Complaint[]
+  fees          Fee[]
+  resolvedComplaints Complaint[] @relation("ResolvedComplaints")
+  markedAttendances Attendance[] @relation("MarkedBy")
+  gradedSubmissions Submission[] @relation("GradedBy")
+}
+
+model Department {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  hodId     String?  @unique
+  hod       User?    @relation("HODRelation", fields: [hodId], references: [id])
+  users     User[]
+  batches   Batch[]
+  subjects  Subject[]
+  notices   Notice[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Batch {
+  id            String   @id @default(cuid())
+  name          String
+  year          Int
+  semester      Int
+  departmentId  String
+  department    Department @relation(fields: [departmentId], references: [id])
+  enrollments   Enrollment[]
+  notices       Notice[]
+  subjects      Subject[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([departmentId, year, semester])
+}
+
+model Subject {
+  id            String   @id @default(cuid())
+  name          String
+  code          String
+  departmentId  String
+  department    Department @relation(fields: [departmentId], references: [id])
+  batchId       String
+  batch         Batch     @relation(fields: [batchId], references: [id])
+  facultyId     String?
+  faculty       User?     @relation(fields: [facultyId], references: [id])
+  assignments   Assignment[]
+  attendances   Attendance[]
+  grades        Grade[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([code, batchId])
+}
+
+model Enrollment {
+  id          String   @id @default(cuid())
+  studentId   String
+  student     User     @relation(fields: [studentId], references: [id])
+  batchId     String
+  batch       Batch    @relation(fields: [batchId], references: [id])
+  academicYear String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([studentId, batchId])
+}
+
+model Assignment {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  subjectId   String
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  dueDate     DateTime
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  submissions Submission[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Submission {
+  id            String     @id @default(cuid())
+  assignmentId  String
+  assignment    Assignment @relation(fields: [assignmentId], references: [id])
+  studentId     String
+  student       User       @relation(fields: [studentId], references: [id])
+  fileUrl       String?
+  submittedAt   DateTime   @default(now())
+  marks         Int?
+  feedback      String?
+  gradedById    String?
+  gradedBy      User?      @relation("GradedBy", fields: [gradedById], references: [id])
+  gradedAt      DateTime?
+
+  @@unique([assignmentId, studentId])
+}
+
+model Attendance {
+  id          String            @id @default(cuid())
+  studentId    String
+  student     User              @relation(fields: [studentId], references: [id])
+  subjectId   String
+  subject     Subject           @relation(fields: [subjectId], references: [id])
+  date        DateTime
+  status      AttendanceStatus @default(PRESENT)
+  markedById  String?
+  markedBy    User?            @relation("MarkedBy", fields: [markedById], references: [id])
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([studentId, subjectId, date])
+}
+
+model Grade {
+  id          String   @id @default(cuid())
+  studentId   String
+  student     User     @relation(fields: [studentId], references: [id])
+  subjectId   String
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  examType    ExamType
+  marks       Int
+  totalMarks  Int      @default(100)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([studentId, subjectId, examType])
+}
+
+model Notice {
+  id           String     @id @default(cuid())
+  title        String
+  content      String
+  postedById   String
+  postedBy     User       @relation(fields: [postedById], references: [id])
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  batchId      String?
+  batch        Batch?     @relation(fields: [batchId], references: [id])
+  priority     Priority   @default(NORMAL)
+  isPinned     Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Complaint {
+  id            String          @id @default(cuid())
+  title         String
+  description   String
+  studentId     String
+  student       User            @relation(fields: [studentId], references: [id])
+  status        ComplaintStatus @default(PENDING)
+  resolvedById   String?
+  resolvedBy    User?           @relation("ResolvedComplaints", fields: [resolvedById], references: [id])
+  resolvedAt    DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+model Fee {
+  id           String    @id @default(cuid())
+  studentId    String
+  student      User      @relation(fields: [studentId], references: [id])
+  amount       Float
+  dueDate      DateTime
+  status       FeeStatus @default(PENDING)
+  paidAt       DateTime?
+  description  String?
+  academicYear String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model CollegeSettings {
+  id           String   @id @default("default")
+  collegeName  String   @default("My College")
+  collegeCode  String   @default("UNI")
+  logoUrl      String?
+  address      String?
+  phone        String?
+  email        String?
+  updatedAt    DateTime @updatedAt
+}
