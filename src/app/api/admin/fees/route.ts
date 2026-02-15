@@ -58,9 +58,12 @@ export async function GET(request: NextRequest) {
       if (endDate) where.dueDate.lte = new Date(endDate)
     }
 
+    // Build student filter
+    let studentFilter: Prisma.UserWhereInput = {}
+
     // Search by student name or ID
     if (search) {
-      where.student = {
+      studentFilter = {
         OR: [
           { fullName: { contains: search, mode: 'insensitive' } },
           { studentId: { contains: search, mode: 'insensitive' } },
@@ -70,8 +73,8 @@ export async function GET(request: NextRequest) {
 
     // Filter by department/batch through student enrollments
     if (departmentId || batchId) {
-      where.student = {
-        ...where.student,
+      studentFilter = {
+        ...studentFilter,
         enrollments: {
           some: {
             ...(departmentId && {
@@ -81,6 +84,11 @@ export async function GET(request: NextRequest) {
           },
         },
       }
+    }
+
+    // Apply student filter if it has any properties
+    if (Object.keys(studentFilter).length > 0) {
+      where.student = studentFilter
     }
 
     // Get total count

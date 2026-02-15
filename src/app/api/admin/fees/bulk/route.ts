@@ -65,22 +65,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create fees for all students
-    const feeData = students.map(student => ({
-      studentId: student.id,
-      amount,
-      dueDate: new Date(dueDate),
-      feeType,
-      description,
-      academicYear,
-      status: 'PENDING',
-      amountPaid: 0,
-    }))
-
-    // Use transaction to create all fees
-    const createdFees = await prisma.$transaction(
-      feeData.map(data => prisma.fee.create({ data }))
-    )
+    // Create fees for all students using createMany for better performance
+    const createdFees = await prisma.$transaction(async (tx) => {
+      const fees = []
+      for (const student of students) {
+        const fee = await tx.fee.create({
+          data: {
+            studentId: student.id,
+            amount,
+            dueDate: new Date(dueDate),
+            feeType,
+            description,
+            academicYear,
+            status: 'PENDING',
+            amountPaid: 0,
+          }
+        })
+        fees.push(fee)
+      }
+      return fees
+    })
 
     return NextResponse.json({
       message: `Successfully created ${createdFees.length} fees`,

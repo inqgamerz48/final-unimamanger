@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
       subject.batch.enrollments.map(enrollment => enrollment.student.id)
     ) || []
 
-    const uniqueStudentIds = [...new Set(studentIds)]
+    const uniqueStudentIds = Array.from(new Set(studentIds))
     const { searchParams } = new URL(request.url)
     
     // Pagination

@@ -2,7 +2,6 @@
 const nextConfig = {
   reactStrictMode: true,
   compress: true,
-  optimizePackageImports: ['lucide-react', 'date-fns', 'lodash', 'recharts', 'framer-motion'],
   logging: {
     fetches: {
       fullUrl: true,
