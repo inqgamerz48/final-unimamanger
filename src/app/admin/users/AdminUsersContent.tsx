@@ -474,14 +474,14 @@ export default function AdminUsersContent() {
                     <div className="space-y-2">
                       <Label className="text-white/70">Department</Label>
                       <Select
-                        value={formData.departmentId}
-                        onValueChange={(value) => setFormData({ ...formData, departmentId: value })}
+                        value={formData.departmentId || 'none'}
+                        onValueChange={(value) => setFormData({ ...formData, departmentId: value === 'none' ? '' : value })}
                       >
                         <SelectTrigger className="bg-white/5 border-white/10 text-white">
                           <SelectValue placeholder="Select department" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="none">None</SelectItem>
                           {departments.map((dept) => (
                             <SelectItem key={dept.id} value={dept.id}>
                               {dept.name}
@@ -594,14 +594,14 @@ export default function AdminUsersContent() {
                     <div className="space-y-2">
                       <Label className="text-white/70">Department</Label>
                       <Select
-                        value={formData.departmentId}
-                        onValueChange={(value) => setFormData({ ...formData, departmentId: value })}
+                        value={formData.departmentId || 'none'}
+                        onValueChange={(value) => setFormData({ ...formData, departmentId: value === 'none' ? '' : value })}
                       >
                         <SelectTrigger className="bg-white/5 border-white/10 text-white">
                           <SelectValue placeholder="Select department" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="none">None</SelectItem>
                           {departments.map((dept) => (
                             <SelectItem key={dept.id} value={dept.id}>
                               {dept.name}
