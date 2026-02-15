@@ -65,7 +65,7 @@ model User {
   updatedAt     DateTime  @updatedAt
 
   // Relations
-  hodOf         Department?
+  hodOf         Department? @relation("HODRelation")
   subjects      Subject[]
   enrollments   Enrollment[]
   assignments   Assignment[]
