@@ -1,3 +1,5 @@
+"use client"
+
 import { useState } from 'react'
 import { useAuth } from '@/context/auth-context'
 import { motion } from 'framer-motion'
