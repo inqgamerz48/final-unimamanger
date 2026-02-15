@@ -1,11 +1,11 @@
 "use client"
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { 
-  onAuthStateChanged, 
-  signInWithEmailAndPassword, 
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
   signOut as firebaseSignOut,
-  User as FirebaseUser 
+  User as FirebaseUser
 } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { User } from '@/types'
@@ -28,9 +28,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       setFirebaseUser(fbUser)
-      
+
       if (fbUser) {
         try {
+          const token = await fbUser.getIdToken()
+          document.cookie = `firebase-token=${token}; path=/`
+
           const response = await fetch('/api/auth/me', {
             headers: {
               'x-firebase-uid': fbUser.uid
@@ -47,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(null)
         }
       } else {
+        document.cookie = 'firebase-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
         setUser(null)
       }
       setLoading(false)
@@ -61,6 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     await firebaseSignOut(auth)
+    document.cookie = 'firebase-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
     setUser(null)
     setFirebaseUser(null)
   }
