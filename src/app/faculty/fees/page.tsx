@@ -231,14 +231,14 @@ export default function FacultyFees() {
               </div>
               
               <Select
-                value={filters.status}
-                onValueChange={(value) => setFilters({ ...filters, status: value })}
+                value={filters.status || 'ALL'}
+                onValueChange={(value) => setFilters({ ...filters, status: value === 'ALL' ? '' : value })}
               >
                 <SelectTrigger className="bg-white/5 border-white/10">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Status</SelectItem>
+                  <SelectItem value="ALL">All Status</SelectItem>
                   <SelectItem value="PENDING">Pending</SelectItem>
                   <SelectItem value="PARTIALLY_PAID">Partially Paid</SelectItem>
                   <SelectItem value="PAID">Paid</SelectItem>

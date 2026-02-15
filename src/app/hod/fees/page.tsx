@@ -392,30 +392,30 @@ export default function HODFees() {
               </div>
               
               <Select
-                value={filters.status}
-                onValueChange={(value) => setFilters({ ...filters, status: value })}
+                value={filters.status || 'ALL'}
+                onValueChange={(value) => setFilters({ ...filters, status: value === 'ALL' ? '' : value })}
               >
                 <SelectTrigger className="bg-white/5 border-white/10">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Status</SelectItem>
+                  <SelectItem value="ALL">All Status</SelectItem>
                   <SelectItem value="PENDING">Pending</SelectItem>
                   <SelectItem value="PARTIALLY_PAID">Partially Paid</SelectItem>
                   <SelectItem value="PAID">Paid</SelectItem>
                   <SelectItem value="OVERDUE">Overdue</SelectItem>
                 </SelectContent>
               </Select>
-              
+
               <Select
-                value={filters.feeType}
-                onValueChange={(value) => setFilters({ ...filters, feeType: value })}
+                value={filters.feeType || 'ALL'}
+                onValueChange={(value) => setFilters({ ...filters, feeType: value === 'ALL' ? '' : value })}
               >
                 <SelectTrigger className="bg-white/5 border-white/10">
                   <SelectValue placeholder="Fee Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Types</SelectItem>
+                  <SelectItem value="ALL">All Types</SelectItem>
                   <SelectItem value="TUITION">Tuition</SelectItem>
                   <SelectItem value="EXAM">Exam</SelectItem>
                   <SelectItem value="LIBRARY">Library</SelectItem>
@@ -424,16 +424,16 @@ export default function HODFees() {
                   <SelectItem value="LAB">Lab</SelectItem>
                 </SelectContent>
               </Select>
-              
+
               <Select
-                value={filters.batchId}
-                onValueChange={(value) => setFilters({ ...filters, batchId: value })}
+                value={filters.batchId || 'ALL'}
+                onValueChange={(value) => setFilters({ ...filters, batchId: value === 'ALL' ? '' : value })}
               >
                 <SelectTrigger className="bg-white/5 border-white/10">
                   <SelectValue placeholder="Batch" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Batches</SelectItem>
+                  <SelectItem value="ALL">All Batches</SelectItem>
                   {batches.map((batch) => (
                     <SelectItem key={batch.id} value={batch.id}>{batch.name}</SelectItem>
                   ))}

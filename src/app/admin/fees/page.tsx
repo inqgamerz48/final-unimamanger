@@ -475,14 +475,14 @@ export default function AdminFees() {
               </div>
               
               <Select
-                value={filters.status}
-                onValueChange={(value) => setFilters({ ...filters, status: value })}
+                value={filters.status || 'ALL'}
+                onValueChange={(value) => setFilters({ ...filters, status: value === 'ALL' ? '' : value })}
               >
                 <SelectTrigger className="bg-white/5 border-white/10">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Status</SelectItem>
+                  <SelectItem value="ALL">All Status</SelectItem>
                   <SelectItem value="PENDING">Pending</SelectItem>
                   <SelectItem value="PARTIALLY_PAID">Partially Paid</SelectItem>
                   <SelectItem value="PAID">Paid</SelectItem>
@@ -492,14 +492,14 @@ export default function AdminFees() {
               </Select>
               
               <Select
-                value={filters.feeType}
-                onValueChange={(value) => setFilters({ ...filters, feeType: value })}
+                value={filters.feeType || 'ALL'}
+                onValueChange={(value) => setFilters({ ...filters, feeType: value === 'ALL' ? '' : value })}
               >
                 <SelectTrigger className="bg-white/5 border-white/10">
                   <SelectValue placeholder="Fee Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Types</SelectItem>
+                  <SelectItem value="ALL">All Types</SelectItem>
                   <SelectItem value="TUITION">Tuition</SelectItem>
                   <SelectItem value="EXAM">Exam</SelectItem>
                   <SelectItem value="LIBRARY">Library</SelectItem>
@@ -511,14 +511,14 @@ export default function AdminFees() {
               </Select>
               
               <Select
-                value={filters.departmentId}
-                onValueChange={(value) => setFilters({ ...filters, departmentId: value, batchId: '' })}
+                value={filters.departmentId || 'ALL'}
+                onValueChange={(value) => setFilters({ ...filters, departmentId: value === 'ALL' ? '' : value, batchId: '' })}
               >
                 <SelectTrigger className="bg-white/5 border-white/10">
                   <SelectValue placeholder="Department" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Departments</SelectItem>
+                  <SelectItem value="ALL">All Departments</SelectItem>
                   {departments.map((dept) => (
                     <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
                   ))}
@@ -526,19 +526,19 @@ export default function AdminFees() {
               </Select>
               
               <Select
-                value={filters.batchId}
-                onValueChange={(value) => setFilters({ ...filters, batchId: value })}
+                value={filters.batchId || 'ALL'}
+                onValueChange={(value) => setFilters({ ...filters, batchId: value === 'ALL' ? '' : value })}
               >
                 <SelectTrigger className="bg-white/5 border-white/10">
                   <SelectValue placeholder="Batch" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Batches</SelectItem>
+                  <SelectItem value="ALL">All Batches</SelectItem>
                   {batches
                     .filter(b => !filters.departmentId || b.departmentId === filters.departmentId)
                     .map((batch) => (
-                      <SelectItem key={batch.id} value={batch.id}>{batch.name}</SelectItem>
-                    ))}
+                    <SelectItem key={batch.id} value={batch.id}>{batch.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               
@@ -810,14 +810,14 @@ export default function AdminFees() {
             <div className="space-y-2">
               <Label>Department</Label>
               <Select
-                value={bulkFormData.departmentId}
-                onValueChange={(value) => setBulkFormData({ ...bulkFormData, departmentId: value, batchId: '' })}
+                value={bulkFormData.departmentId || 'ALL'}
+                onValueChange={(value) => setBulkFormData({ ...bulkFormData, departmentId: value === 'ALL' ? '' : value, batchId: '' })}
               >
                 <SelectTrigger className="bg-white/5 border-white/10">
                   <SelectValue placeholder="All Departments" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Departments</SelectItem>
+                  <SelectItem value="ALL">All Departments</SelectItem>
                   {departments.map((dept) => (
                     <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
                   ))}
@@ -827,14 +827,14 @@ export default function AdminFees() {
             <div className="space-y-2">
               <Label>Batch (Optional)</Label>
               <Select
-                value={bulkFormData.batchId}
-                onValueChange={(value) => setBulkFormData({ ...bulkFormData, batchId: value })}
+                value={bulkFormData.batchId || 'NONE'}
+                onValueChange={(value) => setBulkFormData({ ...bulkFormData, batchId: value === 'NONE' ? '' : value })}
               >
                 <SelectTrigger className="bg-white/5 border-white/10">
                   <SelectValue placeholder="Select batch" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Select batch</SelectItem>
+                  <SelectItem value="NONE">Select batch</SelectItem>
                   {batches
                     .filter(b => !bulkFormData.departmentId || b.departmentId === bulkFormData.departmentId)
                     .map((batch) => (
