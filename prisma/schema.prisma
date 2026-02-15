@@ -57,7 +57,7 @@ model User {
   fullName      String
   role          Role      @default(STUDENT)
   departmentId  String?
-  department    Department? @relation(fields: [departmentId], references: [id])
+  department    Department? @relation("DepartmentMembers", fields: [departmentId], references: [id])
   isActive      Boolean   @default(true)
   phone         String?
   studentId     String?   @unique // Custom student ID like 24UNI-CSE-001
@@ -86,7 +86,7 @@ model Department {
   code      String   @unique
   hodId     String?  @unique
   hod       User?    @relation("HODRelation", fields: [hodId], references: [id])
-  users     User[]
+  users     User[]   @relation("DepartmentMembers")
   batches   Batch[]
   subjects  Subject[]
   notices   Notice[]
