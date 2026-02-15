@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/auth-context'
+import { getAuthHeaders } from '@/lib/api-helpers'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent } from '@/components/ui/card'
 import { BookOpen, Calendar, FileText, Users } from 'lucide-react'
@@ -15,7 +16,7 @@ interface Stats {
 }
 
 export default function FacultyDashboard() {
-  const { user, loading } = useAuth()
+  const { user, firebaseUser, loading } = useAuth()
   const router = useRouter()
   const [stats, setStats] = useState<Stats>({
     totalSubjects: 0,
@@ -38,7 +39,8 @@ export default function FacultyDashboard() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/faculty/stats')
+      const headers = await getAuthHeaders(firebaseUser)
+      const response = await fetch('/api/faculty/stats', { headers })
       if (response.ok) {
         const data = await response.json()
         setStats(data)

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/auth-context'
+import { getAuthHeaders } from '@/lib/api-helpers'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Users, BookOpen, Calendar, FileText } from 'lucide-react'
@@ -15,9 +16,9 @@ interface Stats {
 }
 
 export default function HODDashboard() {
-  const { user, loading } = useAuth()
+  const { user, firebaseUser, loading } = useAuth()
   const router = useRouter()
-  const [stats, setStats] = useState<Stats>({
+  const [stats, setStats] = useState<Stats & { departmentName?: string }>({
     totalStudents: 0,
     totalFaculty: 0,
     totalSubjects: 0,
@@ -38,7 +39,8 @@ export default function HODDashboard() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/hod/stats')
+      const headers = await getAuthHeaders(firebaseUser)
+      const response = await fetch('/api/hod/stats', { headers })
       if (response.ok) {
         const data = await response.json()
         setStats(data)
@@ -88,7 +90,7 @@ export default function HODDashboard() {
       <div className="space-y-8">
         <div>
           <h1 className="text-3xl font-bold text-white">Welcome, {user.fullName}</h1>
-          <p className="text-white/50 mt-1">HOD Dashboard - {user.department?.name || 'Department'}</p>
+          <p className="text-white/50 mt-1">HOD Dashboard - {stats.departmentName || user.department?.name || 'Department'}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

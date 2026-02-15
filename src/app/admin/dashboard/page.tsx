@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/auth-context'
+import { getAuthHeaders } from '@/lib/api-helpers'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Users, Building2, BookOpen, Calendar, Bell, DollarSign } from 'lucide-react'
@@ -15,7 +16,7 @@ interface Stats {
 }
 
 export default function AdminDashboard() {
-  const { user, loading } = useAuth()
+  const { user, firebaseUser, loading } = useAuth()
   const router = useRouter()
   const [stats, setStats] = useState<Stats>({
     totalStudents: 0,
@@ -38,7 +39,8 @@ export default function AdminDashboard() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/admin/stats')
+      const headers = await getAuthHeaders(firebaseUser)
+      const response = await fetch('/api/admin/stats', { headers })
       if (response.ok) {
         const data = await response.json()
         setStats(data)

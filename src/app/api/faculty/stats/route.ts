@@ -1,32 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { verifyRole } from '@/lib/auth-verification'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    const firebaseUid = request.headers.get('x-firebase-uid')
+    // Verify FACULTY role and get user data
+    const authResult = await verifyRole(request, ['FACULTY'])
     
-    if (!firebaseUid) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!authResult) {
+      return NextResponse.json({ error: 'Forbidden - Faculty access required' }, { status: 403 })
     }
 
-    const user = await prisma.user.findUnique({ where: { firebaseUid } })
+    const { prismaUser: user } = authResult
 
-    if (!user || user.role !== 'FACULTY') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-
+    // Fetch faculty's subjects
     const subjects = await prisma.subject.findMany({
       where: { facultyId: user.id },
+      include: {
+        batch: {
+          include: {
+            enrollments: true
+          }
+        }
+      }
     })
+    
     const subjectIds = subjects.map(s => s.id)
 
-    const [totalSubjects, enrollments, pendingAssignments, pendingGrading] = await Promise.all([
-      Promise.resolve(subjects.length),
-      prisma.enrollment.count({
-        where: { batch: { subjects: { some: { id: { in: subjectIds } } } } }
-      }),
+    // Calculate total unique students across all subjects
+    const uniqueStudentIds = new Set<string>()
+    subjects.forEach(subject => {
+      subject.batch.enrollments.forEach(enrollment => {
+        uniqueStudentIds.add(enrollment.studentId)
+      })
+    })
+
+    const [pendingAssignments, pendingGrading] = await Promise.all([
       prisma.assignment.count({
         where: { 
           subjectId: { in: subjectIds },
@@ -42,12 +53,12 @@ export async function GET(request: NextRequest) {
     ])
 
     return NextResponse.json({
-      totalSubjects,
-      totalStudents: enrollments,
+      totalSubjects: subjects.length,
+      totalStudents: uniqueStudentIds.size,
       pendingAssignments,
       pendingGrading,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Faculty stats error:', error)
     return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 })
   }

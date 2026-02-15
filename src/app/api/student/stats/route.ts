@@ -1,23 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { verifyRole } from '@/lib/auth-verification'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    const firebaseUid = request.headers.get('x-firebase-uid')
+    // Verify STUDENT role and get user data
+    const authResult = await verifyRole(request, ['STUDENT'])
     
-    if (!firebaseUid) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!authResult) {
+      return NextResponse.json({ error: 'Forbidden - Student access required' }, { status: 403 })
     }
 
-    const user = await prisma.user.findUnique({ where: { firebaseUid } })
+    const { prismaUser: user } = authResult
 
-    if (!user || user.role !== 'STUDENT') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-
-    const [enrollments, pendingAssignments, pendingFees, notices, complaints] = await Promise.all([
+    // Fetch student-scoped statistics
+    const [enrollments, pendingAssignments, pendingFees, notices, complaints, attendanceStats] = await Promise.all([
       prisma.enrollment.count({ where: { studentId: user.id } }),
       prisma.assignment.count({
         where: {
@@ -26,9 +25,12 @@ export async function GET(request: NextRequest) {
           submissions: { none: { studentId: user.id } }
         }
       }),
-      prisma.fee.findFirst({
-        where: { studentId: user.id, status: 'PENDING' },
-        select: { amount: true }
+      prisma.fee.aggregate({
+        where: { 
+          studentId: user.id, 
+          status: { in: ['PENDING', 'OVERDUE'] }
+        },
+        _sum: { amount: true }
       }),
       prisma.notice.count({
         where: {
@@ -36,8 +38,7 @@ export async function GET(request: NextRequest) {
             { departmentId: user.departmentId },
             { departmentId: null }
           ]
-        },
-        orderBy: { createdAt: 'desc' }
+        }
       }),
       prisma.complaint.count({
         where: { 
@@ -45,17 +46,30 @@ export async function GET(request: NextRequest) {
           status: { in: ['PENDING', 'IN_PROGRESS'] }
         }
       }),
+      // Calculate actual attendance percentage
+      prisma.attendance.groupBy({
+        by: ['status'],
+        where: { studentId: user.id },
+        _count: { status: true }
+      })
     ])
+
+    // Calculate attendance percentage
+    const totalAttendance = attendanceStats.reduce((sum, stat) => sum + stat._count.status, 0)
+    const presentCount = attendanceStats.find(s => s.status === 'PRESENT')?._count.status || 0
+    const attendancePercentage = totalAttendance > 0 
+      ? Math.round((presentCount / totalAttendance) * 100) 
+      : 0
 
     return NextResponse.json({
       enrolledSubjects: enrollments,
-      attendance: 85, // Placeholder - would need actual calculation
+      attendance: attendancePercentage,
       pendingAssignments,
-      feeDue: pendingFees?.amount || 0,
+      feeDue: pendingFees._sum.amount || 0,
       notices,
       complaints,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Student stats error:', error)
     return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 })
   }
