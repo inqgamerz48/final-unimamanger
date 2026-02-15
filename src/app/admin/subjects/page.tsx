@@ -49,12 +49,12 @@ export default function AdminSubjects() {
     name: '', code: '', departmentId: '', batchId: '', facultyId: ''
   })
 
-  const getAuthHeaders = () => {
-    if (!firebaseUser) return { 'Content-Type': 'application/json' }
-    return {
-      'x-firebase-uid': firebaseUser.uid,
-      'Content-Type': 'application/json',
+  const getAuthHeaders = (): Record<string, string> => {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    if (firebaseUser?.uid) {
+      headers['x-firebase-uid'] = firebaseUser.uid
     }
+    return headers
   }
 
   useEffect(() => {
