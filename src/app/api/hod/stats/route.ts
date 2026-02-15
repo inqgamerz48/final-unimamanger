@@ -20,6 +20,10 @@ export async function GET(request: NextRequest) {
 
     const departmentId = user.departmentId
 
+    if (!departmentId) {
+      return NextResponse.json({ error: 'HOD not assigned to any department' }, { status: 400 })
+    }
+
     const [totalStudents, totalFaculty, totalSubjects, totalBatches] = await Promise.all([
       prisma.user.count({ 
         where: { role: 'STUDENT', departmentId } 
