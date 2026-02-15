@@ -25,6 +25,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null)
   const [loading, setLoading] = useState(true)
 
+  // Optimistic load from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('params_user_cache')
+      if (cached) {
+        try {
+          setUser(JSON.parse(cached))
+          setLoading(false) // Show UI immediately while verifying in background
+        } catch (e) {
+          console.error('Cache parse error', e)
+          localStorage.removeItem('params_user_cache')
+        }
+      }
+    }
+  }, [])
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (fbUser: FirebaseUser | null) => {
       setFirebaseUser(fbUser)
@@ -34,24 +50,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const token = await fbUser.getIdToken()
           document.cookie = `firebase-token=${token}; path=/`
 
+          // Send token in Authorization header instead of UID
           const response = await fetch('/api/auth/me', {
             headers: {
-              'x-firebase-uid': fbUser.uid
+              'Authorization': `Bearer ${token}`
             }
           })
           if (response.ok) {
             const userData = await response.json()
             setUser(userData)
+            localStorage.setItem('params_user_cache', JSON.stringify(userData))
           } else {
+            console.error('Auth check failed, clearing cache')
             setUser(null)
+            localStorage.removeItem('params_user_cache')
           }
         } catch (error) {
           console.error('Error fetching user data:', error)
-          setUser(null)
+          // Don't clear user immediately if it's just a network error, allow optimistic UI
+          if (!user) setUser(null)
         }
       } else {
         document.cookie = 'firebase-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
         setUser(null)
+        localStorage.removeItem('params_user_cache')
       }
       setLoading(false)
     })
@@ -68,6 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     document.cookie = 'firebase-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
     setUser(null)
     setFirebaseUser(null)
+    localStorage.removeItem('params_user_cache')
   }
 
   return (

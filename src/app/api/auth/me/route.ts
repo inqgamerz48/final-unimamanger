@@ -1,19 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { verifyAuthToken } from '@/lib/auth-verification'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    // Get Firebase UID from header (set by middleware after verifying Firebase token)
-    const firebaseUid = request.headers.get('x-firebase-uid')
+    // Verify Firebase token from Authorization header
+    const authResult = await verifyAuthToken(request)
     
-    if (!firebaseUid) {
+    if (!authResult) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized - Invalid or missing token' },
         { status: 401 }
       )
     }
+
+    const { uid: firebaseUid } = authResult
 
     const user = await prisma.user.findUnique({
       where: { firebaseUid },
@@ -30,7 +33,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json(user)
-  } catch (error: any) {
+  } catch (error) {
     console.error('Get user error:', error)
     return NextResponse.json(
       { error: 'Failed to get user' },

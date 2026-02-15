@@ -46,8 +46,28 @@ enum ComplaintStatus {
 
 enum FeeStatus {
   PENDING
+  PARTIALLY_PAID
   PAID
   OVERDUE
+  WAIVED
+}
+
+enum FeeType {
+  TUITION
+  EXAM
+  LIBRARY
+  HOSTEL
+  TRANSPORT
+  LAB
+  MISCELLANEOUS
+}
+
+enum PaymentMode {
+  CASH
+  BANK_TRANSFER
+  ONLINE
+  CHEQUE
+  UPI
 }
 
 model User {
@@ -78,6 +98,8 @@ model User {
   resolvedComplaints Complaint[] @relation("ResolvedComplaints")
   markedAttendances Attendance[] @relation("MarkedBy")
   gradedSubmissions Submission[] @relation("GradedBy")
+  markedFees    Fee[] @relation("FeeMarkedBy")
+  userSettings  UserSettings?
 
   @@index([role])
   @@index([departmentId])
@@ -248,26 +270,62 @@ model Complaint {
 }
 
 model Fee {
-  id           String    @id @default(cuid())
-  studentId    String
-  student      User      @relation(fields: [studentId], references: [id])
-  amount       Float
-  dueDate      DateTime
-  status       FeeStatus @default(PENDING)
-  paidAt       DateTime?
-  description  String?
-  academicYear String
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id              String      @id @default(cuid())
+  studentId       String
+  student         User        @relation(fields: [studentId], references: [id])
+  amount          Float
+  amountPaid      Float       @default(0)
+  dueDate         DateTime
+  status          FeeStatus   @default(PENDING)
+  feeType         FeeType     @default(TUITION)
+  paidAt          DateTime?
+  paymentMode     PaymentMode?
+  description     String?
+  academicYear    String
+  remarks         String?
+  markedById      String?
+  markedBy        User?       @relation("FeeMarkedBy", fields: [markedById], references: [id])
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([studentId])
+  @@index([status])
+  @@index([feeType])
+  @@index([academicYear])
+}
+
+model UserSettings {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id])
+  
+  // Profile Settings
+  profilePicture  String?
+  bio             String?
+  
+  // Notification Preferences
+  notifications   Boolean  @default(true)
+  emailAlerts     Boolean  @default(true)
+  feeReminders    Boolean  @default(true)
+  
+  // Preferences
+  theme           String   @default("dark")
+  language        String   @default("en")
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model CollegeSettings {
-  id           String   @id @default("default")
-  collegeName  String   @default("My College")
-  collegeCode  String   @default("UNI")
-  logoUrl      String?
-  address      String?
-  phone        String?
-  email        String?
-  updatedAt    DateTime @updatedAt
+  id                String   @id @default("default")
+  collegeName       String   @default("My College")
+  collegeCode       String   @default("UNI")
+  logoUrl           String?
+  address           String?
+  phone             String?
+  email             String?
+  academicYear      String   @default("2024-2025")
+  isSetupComplete   Boolean  @default(false)
+  setupCompletedAt  DateTime?
+  updatedAt         DateTime @updatedAt
 }

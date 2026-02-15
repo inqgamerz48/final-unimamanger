@@ -31,8 +31,10 @@ const navigationByRole: Record<string, { name: string; href: string; icon: any }
     { name: 'Students', href: '/admin/users?role=STUDENT', icon: Users },
     { name: 'Faculty', href: '/admin/users?role=FACULTY', icon: GraduationCap },
     { name: 'Courses', href: '/admin/subjects', icon: BookOpen },
+    { name: 'Fees', href: '/admin/fees', icon: DollarSign },
     { name: 'Notices', href: '/admin/notices', icon: Bell },
     { name: 'Complaints', href: '/admin/complaints', icon: AlertCircle },
+    { name: 'Settings', href: '/admin/settings', icon: Settings },
   ],
   HOD: [
     { name: 'Dashboard', href: '/hod/dashboard', icon: LayoutDashboard },
@@ -40,10 +42,12 @@ const navigationByRole: Record<string, { name: string; href: string; icon: any }
     { name: 'Faculty', href: '/hod/faculty', icon: GraduationCap },
     { name: 'Students', href: '/hod/students', icon: Users },
     { name: 'Courses', href: '/hod/courses', icon: BookOpen },
+    { name: 'Fees', href: '/hod/fees', icon: DollarSign },
     { name: 'Attendance', href: '/hod/attendance', icon: Calendar },
     { name: 'Assignments', href: '/hod/assignments', icon: FileText },
     { name: 'Notices', href: '/hod/notices', icon: Bell },
     { name: 'Reports', href: '/hod/reports', icon: FileText },
+    { name: 'Settings', href: '/hod/settings', icon: Settings },
   ],
   FACULTY: [
     { name: 'Dashboard', href: '/faculty/dashboard', icon: LayoutDashboard },
@@ -51,7 +55,9 @@ const navigationByRole: Record<string, { name: string; href: string; icon: any }
     { name: 'Attendance', href: '/faculty/attendance', icon: Calendar },
     { name: 'Assignments', href: '/faculty/assignments', icon: FileText },
     { name: 'Grades', href: '/faculty/grades', icon: ClipboardList },
+    { name: 'Fees', href: '/faculty/fees', icon: DollarSign },
     { name: 'Notices', href: '/faculty/notices', icon: Bell },
+    { name: 'Settings', href: '/faculty/settings', icon: Settings },
   ],
   STUDENT: [
     { name: 'Dashboard', href: '/student/dashboard', icon: LayoutDashboard },
@@ -62,6 +68,7 @@ const navigationByRole: Record<string, { name: string; href: string; icon: any }
     { name: 'Notices', href: '/student/notices', icon: Bell },
     { name: 'Fees', href: '/student/fees', icon: DollarSign },
     { name: 'Complaints', href: '/student/complaints', icon: AlertCircle },
+    { name: 'Settings', href: '/student/settings', icon: Settings },
   ],
 }
 

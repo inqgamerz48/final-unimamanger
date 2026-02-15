@@ -1,5 +1,9 @@
 export type Role = 'PRINCIPAL' | 'HOD' | 'FACULTY' | 'STUDENT'
 
+export type FeeType = 'TUITION' | 'EXAM' | 'LIBRARY' | 'HOSTEL' | 'TRANSPORT' | 'LAB' | 'MISCELLANEOUS'
+export type PaymentMode = 'CASH' | 'BANK_TRANSFER' | 'ONLINE' | 'CHEQUE' | 'UPI'
+export type FeeStatus = 'PENDING' | 'PARTIALLY_PAID' | 'PAID' | 'OVERDUE' | 'WAIVED'
+
 export interface User {
   id: string
   firebaseUid: string
@@ -13,6 +17,7 @@ export interface User {
   studentId?: string | null
   createdAt: Date
   updatedAt: Date
+  userSettings?: UserSettings | null
 }
 
 export interface Department {
@@ -138,11 +143,32 @@ export interface Fee {
   studentId: string
   student?: User
   amount: number
+  amountPaid: number
+  balance: number
   dueDate: Date
-  status: 'PENDING' | 'PAID' | 'OVERDUE'
+  status: FeeStatus
+  feeType: FeeType
   paidAt?: Date | null
+  paymentMode?: PaymentMode | null
   description?: string | null
   academicYear: string
+  remarks?: string | null
+  markedById?: string | null
+  markedBy?: User | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface UserSettings {
+  id: string
+  userId: string
+  profilePicture?: string | null
+  bio?: string | null
+  notifications: boolean
+  emailAlerts: boolean
+  feeReminders: boolean
+  theme: string
+  language: string
   createdAt: Date
   updatedAt: Date
 }
@@ -155,5 +181,8 @@ export interface CollegeSettings {
   address?: string | null
   phone?: string | null
   email?: string | null
+  academicYear: string
+  isSetupComplete: boolean
+  setupCompletedAt?: Date | null
   updatedAt: Date
 }

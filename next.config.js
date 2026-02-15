@@ -1,6 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  compress: true,
+  optimizePackageImports: ['lucide-react', 'date-fns', 'lodash', 'recharts', 'framer-motion'],
+  logging: {
+    fetches: {
+      fullUrl: true,
+    },
+  },
   images: {
     domains: ['firebasestorage.googleapis.com'],
   },
@@ -12,7 +19,7 @@ const nextConfig = {
       net: false,
       tls: false,
     }
-    
+
     // Handle private class fields issue
     config.module.rules.push({
       test: /\.(js|mjs|jsx)$/,
@@ -24,7 +31,7 @@ const nextConfig = {
         },
       },
     })
-    
+
     return config
   },
   // Disable type checking during build (we'll catch errors in dev)

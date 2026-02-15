@@ -7,11 +7,19 @@ const protectedRoutes = ['/student', '/faculty', '/hod', '/admin']
 // Routes that are public
 const publicRoutes = ['/login', '/']
 
+// Setup routes that should not be redirected
+const setupRoutes = ['/admin/setup']
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   
   // Allow public routes
   if (publicRoutes.some(route => pathname === route || pathname.startsWith('/api/auth'))) {
+    return NextResponse.next()
+  }
+  
+  // Allow setup routes to pass through (they have their own checks)
+  if (setupRoutes.some(route => pathname.startsWith(route))) {
     return NextResponse.next()
   }
   
