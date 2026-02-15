@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { AttendanceStatus } from '@prisma/client'
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
       studentId,
       subjectId,
       date: new Date(date),
-      status: status as string,
+      status: status as AttendanceStatus,
       markedById: user.id,
     }))
 
