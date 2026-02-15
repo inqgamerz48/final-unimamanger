@@ -78,6 +78,10 @@ model User {
   resolvedComplaints Complaint[] @relation("ResolvedComplaints")
   markedAttendances Attendance[] @relation("MarkedBy")
   gradedSubmissions Submission[] @relation("GradedBy")
+
+  @@index([role])
+  @@index([departmentId])
+  @@index([firebaseUid])
 }
 
 model Department {
@@ -127,6 +131,9 @@ model Subject {
   updatedAt     DateTime @updatedAt
 
   @@unique([code, batchId])
+  @@index([departmentId])
+  @@index([batchId])
+  @@index([facultyId])
 }
 
 model Enrollment {
@@ -218,6 +225,9 @@ model Notice {
   isPinned     Boolean    @default(false)
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+
+  @@index([departmentId])
+  @@index([isPinned, createdAt])
 }
 
 model Complaint {
@@ -232,6 +242,9 @@ model Complaint {
   resolvedAt    DateTime?
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
+
+  @@index([studentId])
+  @@index([status])
 }
 
 model Fee {

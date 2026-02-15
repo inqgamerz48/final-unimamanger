@@ -19,8 +19,9 @@ export async function GET(request: NextRequest) {
       orderBy: { name: 'asc' }
     })
     return NextResponse.json(subjects)
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch subjects' }, { status: 500 })
+  } catch (error: any) {
+    console.error('Admin subjects GET error:', error)
+    return NextResponse.json({ error: error.message || 'Failed to fetch subjects' }, { status: 500 })
   }
 }
 
@@ -38,7 +39,14 @@ export async function POST(request: NextRequest) {
       data: { name, code, departmentId, batchId, facultyId }
     })
     return NextResponse.json(subject)
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to create subject' }, { status: 500 })
+  } catch (error: any) {
+    console.error('Create subject error:', error)
+    if (error.code === 'P2002') {
+      return NextResponse.json({ error: 'Subject code already exists' }, { status: 409 })
+    }
+    if (error.code === 'P2003') {
+      return NextResponse.json({ error: 'Invalid department, batch, or faculty ID' }, { status: 400 })
+    }
+    return NextResponse.json({ error: error.message || 'Failed to create subject' }, { status: 500 })
   }
 }

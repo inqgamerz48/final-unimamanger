@@ -29,8 +29,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(departments)
   } catch (error: any) {
-    console.error('Admin departments error:', error)
-    return NextResponse.json({ error: 'Failed to fetch departments' }, { status: 500 })
+    console.error('Admin departments GET error:', error)
+    return NextResponse.json({ error: error.message || 'Failed to fetch departments' }, { status: 500 })
   }
 }
 
@@ -58,6 +58,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(department)
   } catch (error: any) {
     console.error('Create department error:', error)
-    return NextResponse.json({ error: 'Failed to create department' }, { status: 500 })
+    if (error.code === 'P2002') {
+      return NextResponse.json({ error: 'Department code already exists' }, { status: 409 })
+    }
+    return NextResponse.json({ error: error.message || 'Failed to create department' }, { status: 500 })
   }
 }

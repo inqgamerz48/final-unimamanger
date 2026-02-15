@@ -31,8 +31,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(notices)
   } catch (error: any) {
-    console.error('Admin notices error:', error)
-    return NextResponse.json({ error: 'Failed to fetch notices' }, { status: 500 })
+    console.error('Admin notices GET error:', error)
+    return NextResponse.json({ error: error.message || 'Failed to fetch notices' }, { status: 500 })
   }
 }
 
@@ -67,6 +67,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(notice)
   } catch (error: any) {
     console.error('Create notice error:', error)
-    return NextResponse.json({ error: 'Failed to create notice' }, { status: 500 })
+    return NextResponse.json({ error: error.message || 'Failed to create notice' }, { status: 500 })
   }
 }
