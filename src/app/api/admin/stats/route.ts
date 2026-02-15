@@ -1,17 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getAuthenticatedUser } from '@/lib/auth-helper'
 
 export async function GET(request: NextRequest) {
   try {
-    const firebaseUid = request.headers.get('x-firebase-uid')
-    
-    if (!firebaseUid) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { firebaseUid },
-    })
+    const user = await getAuthenticatedUser(request)
 
     if (!user || user.role !== 'PRINCIPAL') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })

@@ -34,15 +34,19 @@ interface UserData {
 
 const ROLES = ['PRINCIPAL', 'HOD', 'FACULTY', 'STUDENT'] as const
 
+import { useSearchParams } from 'next/navigation'
+
 export default function AdminUsers() {
   const { user, firebaseUser, loading } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
+
   const [users, setUsers] = useState<UserData[]>([])
   const [departments, setDepartments] = useState<Department[]>([])
   const [loadingData, setLoadingData] = useState(true)
-  const [roleFilter, setRoleFilter] = useState<string>('all')
+  const [roleFilter, setRoleFilter] = useState<string>(searchParams.get('role') || 'all')
   const [searchTerm, setSearchTerm] = useState('')
-  
+
   // Get auth headers for API calls
   const getAuthHeaders = (): Record<string, string> => {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' }
@@ -51,13 +55,13 @@ export default function AdminUsers() {
     }
     return headers
   }
-   
+
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingUser, setEditingUser] = useState<UserData | null>(null)
   const [submitting, setSubmitting] = useState(false)
-  
+
   // Form states
   const [formData, setFormData] = useState({
     fullName: '',
@@ -124,7 +128,7 @@ export default function AdminUsers() {
           departmentId: formData.departmentId || undefined,
         }),
       })
-      
+
       if (res.ok) {
         resetForm()
         setShowCreateModal(false)
@@ -144,7 +148,7 @@ export default function AdminUsers() {
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!editingUser) return
-    
+
     setSubmitting(true)
     try {
       const res = await fetch(`/api/admin/users/${editingUser.id}`, {
@@ -158,7 +162,7 @@ export default function AdminUsers() {
           studentId: formData.studentId || null,
         }),
       })
-      
+
       if (res.ok) {
         resetForm()
         setShowEditModal(false)
@@ -180,13 +184,13 @@ export default function AdminUsers() {
     if (!confirm(`Are you sure you want to delete ${userName}? This action cannot be undone.`)) {
       return
     }
-    
+
     try {
       const res = await fetch(`/api/admin/users/${userId}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
       })
-      
+
       if (res.ok) {
         fetchUsers()
       } else {

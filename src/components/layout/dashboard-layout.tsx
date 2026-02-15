@@ -28,15 +28,11 @@ const navigationByRole: Record<string, { name: string; href: string; icon: any }
   PRINCIPAL: [
     { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
     { name: 'Departments', href: '/admin/departments', icon: Building2 },
-    { name: 'Students', href: '/admin/students', icon: Users },
-    { name: 'Faculty', href: '/admin/faculty', icon: GraduationCap },
-    { name: 'Courses', href: '/admin/courses', icon: BookOpen },
-    { name: 'Attendance', href: '/admin/attendance', icon: Calendar },
+    { name: 'Students', href: '/admin/users?role=STUDENT', icon: Users },
+    { name: 'Faculty', href: '/admin/users?role=FACULTY', icon: GraduationCap },
+    { name: 'Courses', href: '/admin/subjects', icon: BookOpen },
     { name: 'Notices', href: '/admin/notices', icon: Bell },
     { name: 'Complaints', href: '/admin/complaints', icon: AlertCircle },
-    { name: 'Fees', href: '/admin/fees', icon: DollarSign },
-    { name: 'Reports', href: '/admin/reports', icon: FileText },
-    { name: 'Settings', href: '/admin/settings', icon: Settings },
   ],
   HOD: [
     { name: 'Dashboard', href: '/hod/dashboard', icon: LayoutDashboard },
