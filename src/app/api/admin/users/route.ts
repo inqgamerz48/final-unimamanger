@@ -2,32 +2,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/firebase-admin'
 import { createUserSchema } from '@/lib/validations'
+import { verifyRole } from '@/lib/auth-verification'
 
 export const dynamic = 'force-dynamic'
 
-// Helper to verify admin
-async function verifyAdmin(request: NextRequest) {
-  const firebaseUid = request.headers.get('x-firebase-uid')
-  
-  if (!firebaseUid) {
-    return { error: 'Unauthorized', status: 401 }
-  }
 
-  const user = await prisma.user.findUnique({ where: { firebaseUid } })
-
-  if (!user || user.role !== 'PRINCIPAL') {
-    return { error: 'Forbidden', status: 403 }
-  }
-
-  return { user }
-}
 
 // GET - List all users
 export async function GET(request: NextRequest) {
   try {
-    const authResult = await verifyAdmin(request)
-    if ('error' in authResult) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status })
+    const authResult = await verifyRole(request, ['PRINCIPAL'])
+    if (!authResult) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const users = await prisma.user.findMany({
@@ -47,13 +33,13 @@ export async function GET(request: NextRequest) {
 // POST - Create new user
 export async function POST(request: NextRequest) {
   try {
-    const authResult = await verifyAdmin(request)
-    if ('error' in authResult) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status })
+    const authResult = await verifyRole(request, ['PRINCIPAL'])
+    if (!authResult) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await request.json()
-    
+
     // Validate input with Zod
     const validationResult = createUserSchema.safeParse(body)
     if (!validationResult.success) {
@@ -62,7 +48,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-    
+
     const { email, fullName, role, departmentId, phone, studentId, password } = validationResult.data
 
     // Check if user already exists in Firebase
