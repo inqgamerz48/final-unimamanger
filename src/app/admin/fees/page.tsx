@@ -11,15 +11,15 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { 
-  DollarSign, 
-  Plus, 
-  Search, 
-  Filter, 
-  Download, 
-  Trash2, 
-  Edit3, 
-  CheckCircle, 
+import {
+  DollarSign,
+  Plus,
+  Search,
+  Filter,
+  Download,
+  Trash2,
+  Edit3,
+  CheckCircle,
   X,
   ChevronLeft,
   ChevronRight,
@@ -79,20 +79,20 @@ interface Stats {
 export default function AdminFees() {
   const { user, firebaseUser, loading } = useAuth()
   const router = useRouter()
-  
+
   // Data state
   const [fees, setFees] = useState<Fee[]>([])
   const [stats, setStats] = useState<Stats | null>(null)
   const [departments, setDepartments] = useState<any[]>([])
   const [batches, setBatches] = useState<any[]>([])
   const [students, setStudents] = useState<any[]>([])
-  
+
   // UI state
   const [loadingData, setLoadingData] = useState(true)
   const [activeTab, setActiveTab] = useState('all')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  
+
   // Filter state
   const [filters, setFilters] = useState({
     search: '',
@@ -102,14 +102,14 @@ export default function AdminFees() {
     batchId: '',
     academicYear: '2024-2025',
   })
-  
+
   // Dialog states
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [showBulkDialog, setShowBulkDialog] = useState(false)
   const [showMarkPaidDialog, setShowMarkPaidDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [selectedFee, setSelectedFee] = useState<Fee | null>(null)
-  
+
   // Form states
   const [addFormData, setAddFormData] = useState({
     studentId: '',
@@ -119,7 +119,7 @@ export default function AdminFees() {
     description: '',
     academicYear: '2024-2025',
   })
-  
+
   const [bulkFormData, setBulkFormData] = useState({
     departmentId: '',
     batchId: '',
@@ -129,7 +129,7 @@ export default function AdminFees() {
     description: '',
     academicYear: '2024-2025',
   })
-  
+
   const [markPaidFormData, setMarkPaidFormData] = useState({
     status: 'PAID',
     amountPaid: '',
@@ -160,21 +160,21 @@ export default function AdminFees() {
   const fetchInitialData = async () => {
     try {
       const headers = await getAuthHeaders(firebaseUser)
-      
+
       // Fetch departments
       const deptRes = await fetch('/api/admin/departments', { headers })
       if (deptRes.ok) {
         const deptData = await deptRes.json()
         setDepartments(deptData)
       }
-      
+
       // Fetch batches
       const batchRes = await fetch('/api/admin/batches', { headers })
       if (batchRes.ok) {
         const batchData = await batchRes.json()
         setBatches(batchData)
       }
-      
+
       // Fetch students
       const studentRes = await fetch('/api/admin/users?role=STUDENT', { headers })
       if (studentRes.ok) {
@@ -192,18 +192,18 @@ export default function AdminFees() {
       const queryParams = new URLSearchParams()
       queryParams.append('page', currentPage.toString())
       queryParams.append('limit', '50')
-      
+
       if (filters.search) queryParams.append('search', filters.search)
       if (filters.status) queryParams.append('status', filters.status)
       if (filters.feeType) queryParams.append('feeType', filters.feeType)
       if (filters.departmentId) queryParams.append('departmentId', filters.departmentId)
       if (filters.batchId) queryParams.append('batchId', filters.batchId)
       if (filters.academicYear) queryParams.append('academicYear', filters.academicYear)
-      
+
       const res = await fetch(`/api/admin/fees?${queryParams}`, {
         headers: await getAuthHeaders(firebaseUser),
       })
-      
+
       if (res.ok) {
         const data = await res.json()
         setFees(data.fees)
@@ -221,7 +221,7 @@ export default function AdminFees() {
       const res = await fetch(`/api/admin/fees/stats?academicYear=${filters.academicYear}`, {
         headers: await getAuthHeaders(firebaseUser),
       })
-      
+
       if (res.ok) {
         const data = await res.json()
         setStats(data.overview)
@@ -239,9 +239,10 @@ export default function AdminFees() {
         body: JSON.stringify({
           ...addFormData,
           amount: parseFloat(addFormData.amount),
+          dueDate: new Date(addFormData.dueDate).toISOString(),
         }),
       })
-      
+
       if (res.ok) {
         setShowAddDialog(false)
         setAddFormData({
@@ -272,9 +273,10 @@ export default function AdminFees() {
         body: JSON.stringify({
           ...bulkFormData,
           amount: parseFloat(bulkFormData.amount),
+          dueDate: new Date(bulkFormData.dueDate).toISOString(),
         }),
       })
-      
+
       if (res.ok) {
         const data = await res.json()
         alert(`Successfully created ${data.count} fees`)
@@ -293,7 +295,7 @@ export default function AdminFees() {
 
   const handleMarkPaid = async () => {
     if (!selectedFee) return
-    
+
     try {
       const res = await fetch(`/api/admin/fees/${selectedFee.id}/mark-paid`, {
         method: 'POST',
@@ -303,7 +305,7 @@ export default function AdminFees() {
           amountPaid: markPaidFormData.amountPaid ? parseFloat(markPaidFormData.amountPaid) : undefined,
         }),
       })
-      
+
       if (res.ok) {
         setShowMarkPaidDialog(false)
         setSelectedFee(null)
@@ -321,13 +323,13 @@ export default function AdminFees() {
 
   const handleDeleteFee = async () => {
     if (!selectedFee) return
-    
+
     try {
       const res = await fetch(`/api/admin/fees/${selectedFee.id}`, {
         method: 'DELETE',
         headers: await getAuthHeaders(firebaseUser),
       })
-      
+
       if (res.ok) {
         setShowDeleteDialog(false)
         setSelectedFee(null)
@@ -413,7 +415,7 @@ export default function AdminFees() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="bg-charcoal border-white/5">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
@@ -428,7 +430,7 @@ export default function AdminFees() {
                 <p className="text-xs text-white/30 mt-2">{stats.collectionRate}% collection rate</p>
               </CardContent>
             </Card>
-            
+
             <Card className="bg-charcoal border-white/5">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
@@ -443,7 +445,7 @@ export default function AdminFees() {
                 <p className="text-xs text-white/30 mt-2">{stats.pendingFees} pending fees</p>
               </CardContent>
             </Card>
-            
+
             <Card className="bg-charcoal border-white/5">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
@@ -473,7 +475,7 @@ export default function AdminFees() {
                   className="pl-10 bg-white/5 border-white/10 text-white"
                 />
               </div>
-              
+
               <Select
                 value={filters.status || 'ALL'}
                 onValueChange={(value) => setFilters({ ...filters, status: value === 'ALL' ? '' : value })}
@@ -490,7 +492,7 @@ export default function AdminFees() {
                   <SelectItem value="WAIVED">Waived</SelectItem>
                 </SelectContent>
               </Select>
-              
+
               <Select
                 value={filters.feeType || 'ALL'}
                 onValueChange={(value) => setFilters({ ...filters, feeType: value === 'ALL' ? '' : value })}
@@ -509,7 +511,7 @@ export default function AdminFees() {
                   <SelectItem value="MISCELLANEOUS">Miscellaneous</SelectItem>
                 </SelectContent>
               </Select>
-              
+
               <Select
                 value={filters.departmentId || 'ALL'}
                 onValueChange={(value) => setFilters({ ...filters, departmentId: value === 'ALL' ? '' : value, batchId: '' })}
@@ -524,7 +526,7 @@ export default function AdminFees() {
                   ))}
                 </SelectContent>
               </Select>
-              
+
               <Select
                 value={filters.batchId || 'ALL'}
                 onValueChange={(value) => setFilters({ ...filters, batchId: value === 'ALL' ? '' : value })}
@@ -537,11 +539,11 @@ export default function AdminFees() {
                   {batches
                     .filter(b => !filters.departmentId || b.departmentId === filters.departmentId)
                     .map((batch) => (
-                    <SelectItem key={batch.id} value={batch.id}>{batch.name}</SelectItem>
-                  ))}
+                      <SelectItem key={batch.id} value={batch.id}>{batch.name}</SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
-              
+
               <Select
                 value={filters.academicYear}
                 onValueChange={(value) => setFilters({ ...filters, academicYear: value })}
@@ -656,7 +658,7 @@ export default function AdminFees() {
                 </table>
               </div>
             )}
-            
+
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/10">
@@ -940,7 +942,7 @@ export default function AdminFees() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             {markPaidFormData.status === 'PARTIALLY_PAID' && (
               <div className="space-y-2">
                 <Label>Amount Paid (₹) *</Label>
@@ -953,7 +955,7 @@ export default function AdminFees() {
                 />
               </div>
             )}
-            
+
             {markPaidFormData.status !== 'WAIVED' && (
               <div className="space-y-2">
                 <Label>Payment Mode</Label>
@@ -974,7 +976,7 @@ export default function AdminFees() {
                 </Select>
               </div>
             )}
-            
+
             <div className="space-y-2">
               <Label>Remarks</Label>
               <Input

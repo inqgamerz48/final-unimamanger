@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/context/auth-context'
+import { getAuthHeaders } from '@/lib/api-helpers'
+import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -10,7 +13,6 @@ import { Badge } from '@/components/ui/badge'
 import { toast } from 'react-hot-toast'
 import { Loader2, CheckCircle2, XCircle, Clock, AlertCircle, Save } from 'lucide-react'
 
-// Types based on our API responses
 interface Subject {
   id: string
   name: string
@@ -36,39 +38,47 @@ interface AttendanceRecord {
 
 export default function FacultyAttendancePage() {
   const router = useRouter()
+  const { user, firebaseUser, loading: authLoading } = useAuth()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
-  // Data
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [students, setStudents] = useState<Student[]>([])
 
-  // Selection State
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>('')
   const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0])
 
-  // Attendance State: Map studentId -> status
   const [attendance, setAttendance] = useState<Record<string, string>>({})
 
-  // Derived state
   const selectedSubject = subjects.find(s => s.id === selectedSubjectId)
 
-  // 1. Fetch Subjects on Mount
   useEffect(() => {
-    fetch('/api/faculty/subjects')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setSubjects(data)
-        } else {
-          toast.error('Failed to load subjects')
-        }
-      })
-      .catch(err => toast.error('Error loading subjects'))
-      .finally(() => setLoading(false))
-  }, [])
+    if (!authLoading && user && user.role !== 'FACULTY') {
+      router.push('/')
+    }
+  }, [user, authLoading, router])
 
-  // 2. Fetch Students & Existing Attendance when Subject/Date changes
+  useEffect(() => {
+    if (user?.role === 'FACULTY') {
+      fetchSubjects()
+    }
+  }, [user])
+
+  const fetchSubjects = async () => {
+    try {
+      const headers = await getAuthHeaders(firebaseUser)
+      const res = await fetch('/api/faculty/subjects', { headers })
+      if (res.ok) {
+        const data = await res.json()
+        setSubjects(data)
+      }
+    } catch (error) {
+      console.error('Error loading subjects:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     if (!selectedSubjectId || !date) return
 
@@ -78,37 +88,32 @@ export default function FacultyAttendancePage() {
     const fetchData = async () => {
       setLoading(true)
       try {
-        // Fetch Students for the batch
-        const studentsRes = await fetch(`/api/faculty/students?batchId=${subject.batchId}`)
+        const headers = await getAuthHeaders(firebaseUser)
+        
+        const studentsRes = await fetch(`/api/faculty/students?batchId=${subject.batchId}`, { headers })
         const studentsData = await studentsRes.json()
 
         if (studentsRes.ok) {
           setStudents(studentsData)
 
-          // Initialize attendance with 'PRESENT' for all new students
           const initialAttendance: Record<string, string> = {}
           studentsData.forEach((s: Student) => {
             initialAttendance[s.id] = 'PRESENT'
           })
           setAttendance(initialAttendance)
-        } else {
-          toast.error('Failed to load students')
-          return
         }
 
-        // Fetch Existing Attendance
         const attendanceRes = await fetch(
-          `/api/faculty/attendance?batchId=${subject.batchId}&subjectId=${subject.id}&date=${date}`
+          `/api/faculty/attendance?batchId=${subject.batchId}&subjectId=${subject.id}&date=${date}`,
+          { headers }
         )
         const attendanceData = await attendanceRes.json()
 
         if (attendanceRes.ok && Array.isArray(attendanceData)) {
-          // Update state with existing records
           const existing: Record<string, string> = {}
           attendanceData.forEach((record: any) => {
             existing[record.studentId] = record.status
           })
-          // Merge: existing overrides initial 'PRESENT'
           setAttendance(prev => ({ ...prev, ...existing }))
         }
 
@@ -121,9 +126,8 @@ export default function FacultyAttendancePage() {
     }
 
     fetchData()
-  }, [selectedSubjectId, date, subjects])
+  }, [selectedSubjectId, date, subjects, firebaseUser])
 
-  // Handlers
   const handleStatusChange = (studentId: string, status: string) => {
     setAttendance(prev => ({
       ...prev,
@@ -144,6 +148,7 @@ export default function FacultyAttendancePage() {
 
     setSaving(true)
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const records = Object.entries(attendance).map(([studentId, status]) => ({
         studentId,
         status
@@ -151,7 +156,7 @@ export default function FacultyAttendancePage() {
 
       const res = await fetch('/api/faculty/attendance', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           batchId: selectedSubject.batchId,
           subjectId: selectedSubject.id,
@@ -173,7 +178,6 @@ export default function FacultyAttendancePage() {
     }
   }
 
-  // Helper for Status Badge/Button
   const StatusButton = ({
     studentId,
     status,
@@ -186,13 +190,11 @@ export default function FacultyAttendancePage() {
     return (
       <button
         onClick={() => handleStatusChange(studentId, status)}
-        className={`
-          flex items-center justify-center p-2 rounded-md transition-all
-          ${isSelected
+        className={`flex items-center justify-center p-2 rounded-md transition-all ${
+          isSelected
             ? `${colorClass} text-white shadow-md`
-            : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
-          }
-        `}
+            : 'bg-white/5 text-white/50 hover:bg-white/10'
+        }`}
         title={label}
       >
         <Icon className="w-4 h-4" />
@@ -200,14 +202,18 @@ export default function FacultyAttendancePage() {
     )
   }
 
+  if (authLoading || user?.role !== 'FACULTY') {
+    return null
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Mark Attendance</h1>
-          <p className="text-muted-foreground">Select a subject and date to mark student attendance.</p>
-        </div>
-        <div className="flex items-center gap-2">
+    <DashboardLayout>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-white">Mark Attendance</h1>
+            <p className="text-white/50 mt-1">Select a subject and date to mark student attendance.</p>
+          </div>
           {selectedSubjectId && (
             <Button onClick={handleSubmit} disabled={saving || loading} className="bg-neon-lime text-obsidian hover:bg-neon-lime/90">
               {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
@@ -215,135 +221,139 @@ export default function FacultyAttendancePage() {
             </Button>
           )}
         </div>
-      </div>
 
-      {/* Filters Card */}
-      <Card className="bg-card">
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Subject</label>
-              <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Subject" />
-                </SelectTrigger>
-                <SelectContent>
-                  {subjects.map(subject => (
-                    <SelectItem key={subject.id} value={subject.id}>
-                      {subject.name} ({subject.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Date</label>
-              <Input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                max={new Date().toISOString().split('T')[0]}
-              />
-            </div>
-
-            {selectedSubject && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Batch</label>
-                <div className="p-2 border rounded-md bg-muted/50 text-sm">
-                  {selectedSubject.batch.name}
-                </div>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Student List */}
-      {selectedSubjectId ? (
-        <Card className="bg-card">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Student List ({students.length})</CardTitle>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => handleMarkAll('PRESENT')}>Mark All Present</Button>
-              <Button variant="outline" size="sm" onClick={() => handleMarkAll('ABSENT')}>Mark All Absent</Button>
-            </div>
+        <Card className="bg-charcoal border-white/5">
+          <CardHeader>
+            <CardTitle className="text-white">Selection</CardTitle>
           </CardHeader>
           <CardContent>
-            {loading ? (
-              <div className="flex justify-center p-8">
-                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : students.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No students found in this batch.
-              </div>
-            ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
-                {/* Header */}
-                <div className="grid grid-cols-12 gap-4 px-4 py-2 text-sm font-medium text-muted-foreground border-b">
-                  <div className="col-span-5">Student Details</div>
-                  <div className="col-span-7 flex justify-between px-2">
-                    <span>Present</span>
-                    <span>Absent</span>
-                    <span>Late</span>
-                    <span>Excused</span>
+                <label className="text-sm font-medium text-white/70">Subject</label>
+                <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
+                  <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                    <SelectValue placeholder="Select Subject" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-charcoal border-white/10">
+                    {subjects.map(subject => (
+                      <SelectItem key={subject.id} value={subject.id} className="text-white">
+                        {subject.name} ({subject.code})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-white/70">Date</label>
+                <Input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  max={new Date().toISOString().split('T')[0]}
+                  className="bg-white/5 border-white/10 text-white"
+                />
+              </div>
+
+              {selectedSubject && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-white/70">Batch</label>
+                  <div className="p-2 border border-white/10 rounded-md bg-white/5 text-white">
+                    {selectedSubject.batch.name}
                   </div>
                 </div>
-
-                {/* Rows */}
-                {students.map(student => (
-                  <div key={student.id} className="grid grid-cols-12 gap-4 items-center p-3 rounded-lg hover:bg-muted/50 transition-colors border border-transparent hover:border-border">
-                    <div className="col-span-5">
-                      <p className="font-medium">{student.fullName}</p>
-                      <p className="text-xs text-muted-foreground">{student.studentId || 'No ID'}</p>
-                    </div>
-                    <div className="col-span-7 grid grid-cols-4 gap-2">
-                      <StatusButton
-                        studentId={student.id}
-                        status="PRESENT"
-                        currentStatus={attendance[student.id]}
-                        icon={CheckCircle2}
-                        label="Present"
-                        colorClass="bg-green-500 hover:bg-green-600"
-                      />
-                      <StatusButton
-                        studentId={student.id}
-                        status="ABSENT"
-                        currentStatus={attendance[student.id]}
-                        icon={XCircle}
-                        label="Absent"
-                        colorClass="bg-red-500 hover:bg-red-600"
-                      />
-                      <StatusButton
-                        studentId={student.id}
-                        status="LATE"
-                        currentStatus={attendance[student.id]}
-                        icon={Clock}
-                        label="Late"
-                        colorClass="bg-yellow-500 hover:bg-yellow-600"
-                      />
-                      <StatusButton
-                        studentId={student.id}
-                        status="EXCUSED"
-                        currentStatus={attendance[student.id]}
-                        icon={AlertCircle}
-                        label="Excused"
-                        colorClass="bg-blue-500 hover:bg-blue-600"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+              )}
+            </div>
           </CardContent>
         </Card>
-      ) : (
-        <div className="flex flex-col items-center justify-center p-12 bg-muted/10 rounded-lg border border-dashed">
-          <Clock className="w-12 h-12 text-muted-foreground mb-4" />
-          <p className="text-lg font-medium text-muted-foreground">Select a subject to start marking attendance</p>
-        </div>
-      )}
-    </div>
+
+        {selectedSubjectId ? (
+          <Card className="bg-charcoal border-white/5">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-white">Student List ({students.length})</CardTitle>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => handleMarkAll('PRESENT')} className="border-white/10 text-white hover:bg-white/10">
+                  Mark All Present
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleMarkAll('ABSENT')} className="border-white/10 text-white hover:bg-white/10">
+                  Mark All Absent
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="flex justify-center p-8">
+                  <Loader2 className="w-8 h-8 animate-spin text-neon-lime" />
+                </div>
+              ) : students.length === 0 ? (
+                <div className="text-center py-8 text-white/50">
+                  No students found in this batch.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-12 gap-4 px-4 py-2 text-sm font-medium text-white/70 border-b border-white/10">
+                    <div className="col-span-5">Student Details</div>
+                    <div className="col-span-7 flex justify-between px-2">
+                      <span>Present</span>
+                      <span>Absent</span>
+                      <span>Late</span>
+                      <span>Excused</span>
+                    </div>
+                  </div>
+
+                  {students.map(student => (
+                    <div key={student.id} className="grid grid-cols-12 gap-4 items-center p-3 rounded-lg hover:bg-white/5 transition-colors border border-transparent hover:border-white/10">
+                      <div className="col-span-5">
+                        <p className="font-medium text-white">{student.fullName}</p>
+                        <p className="text-xs text-white/50">{student.studentId || 'No ID'}</p>
+                      </div>
+                      <div className="col-span-7 grid grid-cols-4 gap-2">
+                        <StatusButton
+                          studentId={student.id}
+                          status="PRESENT"
+                          currentStatus={attendance[student.id]}
+                          icon={CheckCircle2}
+                          label="Present"
+                          colorClass="bg-green-500 hover:bg-green-600"
+                        />
+                        <StatusButton
+                          studentId={student.id}
+                          status="ABSENT"
+                          currentStatus={attendance[student.id]}
+                          icon={XCircle}
+                          label="Absent"
+                          colorClass="bg-red-500 hover:bg-red-600"
+                        />
+                        <StatusButton
+                          studentId={student.id}
+                          status="LATE"
+                          currentStatus={attendance[student.id]}
+                          icon={Clock}
+                          label="Late"
+                          colorClass="bg-yellow-500 hover:bg-yellow-600"
+                        />
+                        <StatusButton
+                          studentId={student.id}
+                          status="EXCUSED"
+                          currentStatus={attendance[student.id]}
+                          icon={AlertCircle}
+                          label="Excused"
+                          colorClass="bg-blue-500 hover:bg-blue-600"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="flex flex-col items-center justify-center p-12 bg-charcoal rounded-lg border border-white/5">
+            <Clock className="w-12 h-12 text-white/50 mb-4" />
+            <p className="text-lg font-medium text-white">Select a subject to start marking attendance</p>
+          </div>
+        )}
+      </div>
+    </DashboardLayout>
   )
 }
