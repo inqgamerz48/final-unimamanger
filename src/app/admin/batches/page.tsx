@@ -87,8 +87,14 @@ export default function AdminBatches() {
     }
   }, [user, firebaseUser])
 
+  const [error, setError] = useState('')
+
   const handleCreate = async () => {
-    if (!createFormData.name || !createFormData.departmentId) return
+    setError('')
+    if (!createFormData.name || !createFormData.departmentId) {
+      setError('Name and Department are required')
+      return
+    }
 
     setSubmitting(true)
     try {
@@ -99,6 +105,8 @@ export default function AdminBatches() {
         body: JSON.stringify(createFormData)
       })
 
+      const data = await res.json()
+
       if (res.ok) {
         setShowCreateDialog(false)
         setCreateFormData({
@@ -108,9 +116,12 @@ export default function AdminBatches() {
           departmentId: ''
         })
         fetchData()
+      } else {
+        setError(data.error || 'Failed to create batch')
       }
     } catch (error) {
       console.error('Error creating batch:', error)
+      setError('An unexpected error occurred')
     } finally {
       setSubmitting(false)
     }
@@ -220,12 +231,20 @@ export default function AdminBatches() {
         )}
 
         {/* Create Dialog */}
-        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <Dialog open={showCreateDialog} onOpenChange={(open) => {
+          setShowCreateDialog(open)
+          if (!open) setError('')
+        }}>
           <DialogContent className="bg-charcoal border-white/10 text-white">
             <DialogHeader>
               <DialogTitle>Create New Batch</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
+              {error && (
+                <div className="p-3 text-sm bg-red-500/10 border border-red-500/20 text-red-500 rounded-md">
+                  {error}
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>Batch Name</Label>
                 <Input

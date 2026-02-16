@@ -31,11 +31,26 @@ export async function POST(request: NextRequest) {
     }
     const body = await request.json()
     const { name, year, semester, departmentId } = body
+
+    if (!name || !departmentId || !year || !semester) {
+      return NextResponse.json({ error: 'Name, Department, Year and Semester are required' }, { status: 400 })
+    }
+
     const batch = await prisma.batch.create({
       data: { name, year, semester, departmentId }
     })
     return NextResponse.json(batch)
   } catch (error: any) {
-    return NextResponse.json({ error: 'Failed to create batch' }, { status: 500 })
+    console.error('Batch creation error:', error)
+    if (error.code === 'P2002') {
+      return NextResponse.json(
+        { error: 'A batch with this department, year, and semester already exists' },
+        { status: 409 }
+      )
+    }
+    return NextResponse.json(
+      { error: error.message || 'Failed to create batch' },
+      { status: 500 }
+    )
   }
 }
