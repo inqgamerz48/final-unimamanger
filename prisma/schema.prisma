@@ -86,6 +86,7 @@ model User {
 
   // Relations
   hodOf         Department? @relation("HODRelation")
+  examCellCoordinatorOf Department? @relation("ExamCellCoordinator")
   subjects      Subject[]
   enrollments   Enrollment[]
   assignments   Assignment[]
@@ -112,6 +113,8 @@ model Department {
   code      String   @unique
   hodId     String?  @unique
   hod       User?    @relation("HODRelation", fields: [hodId], references: [id])
+  examCellCoordinatorId String? @unique
+  examCellCoordinator   User?   @relation("ExamCellCoordinator", fields: [examCellCoordinatorId], references: [id])
   users     User[]   @relation("DepartmentMembers")
   batches   Batch[]
   subjects  Subject[]

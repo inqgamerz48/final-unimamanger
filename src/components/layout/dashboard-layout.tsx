@@ -18,7 +18,8 @@ import {
   Building2,
   ClipboardList,
   Menu,
-  X
+  X,
+  ShieldCheck
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -35,6 +36,7 @@ const navigationByRole: Record<string, { name: string; href: string; icon: any }
     { name: 'Fees', href: '/admin/fees', icon: DollarSign },
     { name: 'Notices', href: '/admin/notices', icon: Bell },
     { name: 'Complaints', href: '/admin/complaints', icon: AlertCircle },
+    { name: 'Exam Cells', href: '/admin/exam-cells', icon: ShieldCheck },
     { name: 'Settings', href: '/admin/settings', icon: Settings },
   ],
   HOD: [

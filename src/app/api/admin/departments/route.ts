@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
       where: whereClause,
       include: {
         hod: { select: { fullName: true } },
+        examCellCoordinator: { select: { fullName: true, email: true } },
         _count: {
           select: { users: true, batches: true }
         }

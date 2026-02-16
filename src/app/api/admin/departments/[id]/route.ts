@@ -31,13 +31,20 @@ export async function PUT(
     const updateData: any = {}
     if (name !== undefined) updateData.name = name
     if (code !== undefined) updateData.code = code.toUpperCase()
+    if (code !== undefined) updateData.code = code.toUpperCase()
     if (hodId !== undefined) updateData.hodId = hodId || null
+
+    // Handle Exam Cell Coordinator
+    if (body.examCellCoordinatorId !== undefined) {
+      updateData.examCellCoordinatorId = body.examCellCoordinatorId || null
+    }
 
     const updatedDept = await prisma.department.update({
       where: { id: params.id },
       data: updateData,
       include: {
         hod: { select: { fullName: true, id: true } },
+        examCellCoordinator: { select: { fullName: true, id: true } },
         _count: { select: { users: true, batches: true } }
       }
     })

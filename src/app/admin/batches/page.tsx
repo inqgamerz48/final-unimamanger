@@ -184,10 +184,16 @@ export default function AdminBatches() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-white">Batches & Sections</h1>
-          <Button onClick={() => setShowCreateDialog(true)} className="bg-neon-lime text-obsidian hover:bg-neon-lime/90">
-            <Plus className="w-4 h-4 mr-2" />
-            Create Batch
-          </Button>
+          <div className="flex gap-3">
+            <Button onClick={() => router.push('/admin/batches/promote')} variant="outline" className="border-neon-lime text-neon-lime hover:bg-neon-lime/10">
+              <Users className="w-4 h-4 mr-2" />
+              Promote Batches
+            </Button>
+            <Button onClick={() => setShowCreateDialog(true)} className="bg-neon-lime text-obsidian hover:bg-neon-lime/90">
+              <Plus className="w-4 h-4 mr-2" />
+              Create Batch
+            </Button>
+          </div>
         </div>
 
         {loadingData ? (
