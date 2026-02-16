@@ -1,25 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/firebase-admin'
+import { verifyRole } from '@/lib/auth-verification'
 
 export const dynamic = 'force-dynamic'
-
-// Helper to verify admin
-async function verifyAdmin(request: NextRequest) {
-  const firebaseUid = request.headers.get('x-firebase-uid')
-  
-  if (!firebaseUid) {
-    return { error: 'Unauthorized', status: 401 }
-  }
-
-  const user = await prisma.user.findUnique({ where: { firebaseUid } })
-
-  if (!user || user.role !== 'PRINCIPAL') {
-    return { error: 'Forbidden', status: 403 }
-  }
-
-  return { user }
-}
 
 // PUT - Update user
 export async function PUT(
@@ -27,9 +11,9 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const authResult = await verifyAdmin(request)
-    if ('error' in authResult) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status })
+    const authResult = await verifyRole(request, ['PRINCIPAL'])
+    if (!authResult) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await request.json()
@@ -105,9 +89,9 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const authResult = await verifyAdmin(request)
-    if ('error' in authResult) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status })
+    const authResult = await verifyRole(request, ['PRINCIPAL'])
+    if (!authResult) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Get the user to delete

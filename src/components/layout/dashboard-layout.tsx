@@ -51,6 +51,7 @@ const navigationByRole: Record<string, { name: string; href: string; icon: any }
   ],
   FACULTY: [
     { name: 'Dashboard', href: '/faculty/dashboard', icon: LayoutDashboard },
+    { name: 'My Batches', href: '/faculty/batches', icon: Users },
     { name: 'My Subjects', href: '/faculty/subjects', icon: BookOpen },
     { name: 'Attendance', href: '/faculty/attendance', icon: Calendar },
     { name: 'Assignments', href: '/faculty/assignments', icon: FileText },
@@ -61,6 +62,7 @@ const navigationByRole: Record<string, { name: string; href: string; icon: any }
   ],
   STUDENT: [
     { name: 'Dashboard', href: '/student/dashboard', icon: LayoutDashboard },
+    { name: 'My Batch', href: '/student/batch', icon: Users },
     { name: 'My Courses', href: '/student/courses', icon: BookOpen },
     { name: 'Attendance', href: '/student/attendance', icon: Calendar },
     { name: 'Assignments', href: '/student/assignments', icon: FileText },

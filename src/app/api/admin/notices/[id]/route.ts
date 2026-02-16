@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { verifyRole } from '@/lib/auth-verification'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,16 +9,9 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const firebaseUid = request.headers.get('x-firebase-uid')
-    
-    if (!firebaseUid) {
+    const authResult = await verifyRole(request, ['PRINCIPAL', 'HOD'])
+    if (!authResult) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const user = await prisma.user.findUnique({ where: { firebaseUid } })
-
-    if (!user || (user.role !== 'PRINCIPAL' && user.role !== 'HOD')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     await prisma.notice.delete({ where: { id: params.id } })

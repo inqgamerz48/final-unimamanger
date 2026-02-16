@@ -1,35 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createGradeSchema } from '@/lib/validations'
+import { verifyRole } from '@/lib/auth-verification'
 
 export const dynamic = 'force-dynamic'
-
-// Helper to verify faculty
-async function verifyFaculty(request: NextRequest) {
-  const firebaseUid = request.headers.get('x-firebase-uid')
-  
-  if (!firebaseUid) {
-    return { error: 'Unauthorized', status: 401 }
-  }
-
-  const user = await prisma.user.findUnique({ where: { firebaseUid } })
-
-  if (!user || (user.role !== 'FACULTY' && user.role !== 'HOD')) {
-    return { error: 'Forbidden', status: 403 }
-  }
-
-  return { user }
-}
 
 // GET - List all students with grades for faculty's subjects
 export async function GET(request: NextRequest) {
   try {
-    const authResult = await verifyFaculty(request)
-    if ('error' in authResult) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status })
+    const authResult = await verifyRole(request, ['FACULTY', 'HOD'])
+    if (!authResult) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { user } = authResult
+    const { prismaUser: user } = authResult
 
     // Get all subjects taught by this faculty
     const subjects = await prisma.subject.findMany({
@@ -70,12 +54,12 @@ export async function GET(request: NextRequest) {
 // POST - Create or update grades for students
 export async function POST(request: NextRequest) {
   try {
-    const authResult = await verifyFaculty(request)
-    if ('error' in authResult) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status })
+    const authResult = await verifyRole(request, ['FACULTY', 'HOD'])
+    if (!authResult) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { user } = authResult
+    const { prismaUser: user } = authResult
     const body = await request.json()
     
     // Validate input with Zod
@@ -190,12 +174,12 @@ export async function POST(request: NextRequest) {
 // DELETE - Delete a grade
 export async function DELETE(request: NextRequest) {
   try {
-    const authResult = await verifyFaculty(request)
-    if ('error' in authResult) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status })
+    const authResult = await verifyRole(request, ['FACULTY', 'HOD'])
+    if (!authResult) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { user } = authResult
+    const { prismaUser: user } = authResult
     const { searchParams } = new URL(request.url)
     const gradeId = searchParams.get('id')
 

@@ -1,21 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { verifyRole } from '@/lib/auth-verification'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    const firebaseUid = request.headers.get('x-firebase-uid')
-    
-    if (!firebaseUid) {
+    const authResult = await verifyRole(request, ['STUDENT'])
+    if (!authResult) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({ where: { firebaseUid } })
-
-    if (!user || user.role !== 'STUDENT') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
+    const { prismaUser: user } = authResult
 
     const complaints = await prisma.complaint.findMany({
       where: { studentId: user.id },
@@ -31,18 +27,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const firebaseUid = request.headers.get('x-firebase-uid')
-    
-    if (!firebaseUid) {
+    const authResult = await verifyRole(request, ['STUDENT'])
+    if (!authResult) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({ where: { firebaseUid } })
-
-    if (!user || user.role !== 'STUDENT') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-
+    const { prismaUser: user } = authResult
     const body = await request.json()
     const { title, description } = body
 

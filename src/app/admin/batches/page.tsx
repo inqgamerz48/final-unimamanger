@@ -10,13 +10,15 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Calendar, Trash2, Users } from 'lucide-react'
+import { Plus, Calendar, Trash2, Users, Edit2 } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 
 interface Batch {
   id: string
   name: string
   year: number
   semester: number
+  departmentId: string
   department: { name: string; code: string }
   _count: { enrollments: number }
 }
@@ -24,86 +26,88 @@ interface Batch {
 interface Department {
   id: string
   name: string
+  code: string
 }
 
 export default function AdminBatches() {
-  const { user, firebaseUser, loading } = useAuth()
+  const { user, firebaseUser } = useAuth()
   const router = useRouter()
   const [batches, setBatches] = useState<Batch[]>([])
   const [departments, setDepartments] = useState<Department[]>([])
   const [loadingData, setLoadingData] = useState(true)
-  const [showForm, setShowForm] = useState(false)
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [showEditDialog, setShowEditDialog] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [formData, setFormData] = useState({
+
+  // Form States
+  const [createFormData, setCreateFormData] = useState({
     name: '',
-    year: '1',
-    semester: '1',
-    departmentId: '',
+    year: new Date().getFullYear(),
+    semester: 1,
+    departmentId: ''
   })
 
-  useEffect(() => {
-    if (!loading && user && user.role !== 'PRINCIPAL') {
-      router.push('/')
-    }
-  }, [user, loading, router])
+  const [editingBatch, setEditingBatch] = useState<Batch | null>(null)
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    year: new Date().getFullYear(),
+    semester: 1,
+    departmentId: ''
+  })
 
-  useEffect(() => {
-    if (user?.role === 'PRINCIPAL') {
-      fetchBatches()
-      fetchDepartments()
-    }
-  }, [user])
-
-  const fetchBatches = async () => {
+  const fetchData = async () => {
     try {
+      setLoadingData(true)
       const headers = await getAuthHeaders(firebaseUser)
-      const res = await fetch('/api/admin/batches', {
-        headers,
-      })
-      if (res.ok) {
-        const data = await res.json()
+
+      const [batchesRes, deptsRes] = await Promise.all([
+        fetch('/api/admin/batches', { headers }),
+        fetch('/api/admin/departments', { headers })
+      ])
+
+      if (batchesRes.ok) {
+        const data = await batchesRes.json()
         setBatches(data)
       }
+
+      if (deptsRes.ok) {
+        const data = await deptsRes.json()
+        setDepartments(data)
+      }
     } catch (error) {
-      console.error('Error fetching batches:', error)
+      console.error('Error fetching data:', error)
     } finally {
       setLoadingData(false)
     }
   }
 
-  const fetchDepartments = async () => {
-    try {
-      const headers = await getAuthHeaders(firebaseUser)
-      const res = await fetch('/api/admin/departments', {
-        headers,
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setDepartments(data)
-      }
-    } catch (error) {
-      console.error('Error fetching departments:', error)
+  useEffect(() => {
+    if (user) {
+      fetchData()
     }
-  }
+  }, [user, firebaseUser])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleCreate = async () => {
+    if (!createFormData.name || !createFormData.departmentId) return
+
     setSubmitting(true)
     try {
       const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch('/api/admin/batches', {
         method: 'POST',
         headers,
-        body: JSON.stringify({
-          ...formData,
-          year: parseInt(formData.year),
-          semester: parseInt(formData.semester),
-        }),
+        body: JSON.stringify(createFormData)
       })
+
       if (res.ok) {
-        setFormData({ name: '', year: '1', semester: '1', departmentId: '' })
-        setShowForm(false)
-        fetchBatches()
+        setShowCreateDialog(false)
+        setCreateFormData({
+          name: '',
+          year: new Date().getFullYear(),
+          semester: 1,
+          departmentId: ''
+        })
+        fetchData()
       }
     } catch (error) {
       console.error('Error creating batch:', error)
@@ -112,110 +116,78 @@ export default function AdminBatches() {
     }
   }
 
+  const handleEdit = (batch: Batch) => {
+    setEditingBatch(batch)
+    setEditFormData({
+      name: batch.name,
+      year: batch.year,
+      semester: batch.semester,
+      departmentId: batch.departmentId
+    })
+    setShowEditDialog(true)
+  }
+
+  const handleUpdate = async () => {
+    if (!editingBatch) return
+    setSubmitting(true)
+    try {
+      const headers = await getAuthHeaders(firebaseUser)
+      const res = await fetch(`/api/admin/batches/${editingBatch.id}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(editFormData)
+      })
+
+      if (res.ok) {
+        setShowEditDialog(false)
+        setEditingBatch(null)
+        fetchData()
+      }
+    } catch (error) {
+      console.error('Error updating batch', error)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this batch?')) return
+    if (!confirm('Are you sure you want to delete this batch?')) return
+
     try {
       const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch(`/api/admin/batches/${id}`, {
         method: 'DELETE',
-        headers,
+        headers
       })
-      if (res.ok) fetchBatches()
+
+      if (res.ok) {
+        fetchData()
+      }
     } catch (error) {
       console.error('Error deleting batch:', error)
     }
-  }
-
-  if (loading || user?.role !== 'PRINCIPAL') {
-    return null
   }
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-white">Batches</h1>
-            <p className="text-white/50 mt-1">Manage year/semester batches</p>
-          </div>
-          <Button onClick={() => setShowForm(!showForm)} className="bg-neon-lime text-obsidian hover:bg-neon-lime/90">
-            <Plus className="w-4 h-4 mr-2" />Add Batch
+          <h1 className="text-2xl font-bold text-white">Batches & Sections</h1>
+          <Button onClick={() => setShowCreateDialog(true)} className="bg-neon-lime text-obsidian hover:bg-neon-lime/90">
+            <Plus className="w-4 h-4 mr-2" />
+            Create Batch
           </Button>
         </div>
 
-        {showForm && (
-          <Card className="bg-charcoal border-white/5">
-            <CardHeader><CardTitle className="text-white">Add New Batch</CardTitle></CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-white/70">Batch Name</Label>
-                    <Input
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="2024-27"
-                      className="bg-white/5 border-white/10 text-white"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-white/70">Department</Label>
-                    <Select value={formData.departmentId} onValueChange={(v) => setFormData({ ...formData, departmentId: v })}>
-                      <SelectTrigger className="bg-white/5 border-white/10"><SelectValue placeholder="Select department" /></SelectTrigger>
-                      <SelectContent>
-                        {departments.map((d) => (
-                          <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-white/70">Year</Label>
-                    <Select value={formData.year} onValueChange={(v) => setFormData({ ...formData, year: v })}>
-                      <SelectTrigger className="bg-white/5 border-white/10"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">Year 1</SelectItem>
-                        <SelectItem value="2">Year 2</SelectItem>
-                        <SelectItem value="3">Year 3</SelectItem>
-                        <SelectItem value="4">Year 4</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-white/70">Semester</Label>
-                    <Select value={formData.semester} onValueChange={(v) => setFormData({ ...formData, semester: v })}>
-                      <SelectTrigger className="bg-white/5 border-white/10"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {[1,2,3,4,5,6,7,8].map(s => (
-                          <SelectItem key={s} value={String(s)}>Semester {s}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button type="submit" disabled={submitting} className="bg-neon-lime text-obsidian">
-                    {submitting ? 'Creating...' : 'Create Batch'}
-                  </Button>
-                  <Button type="button" variant="outline" onClick={() => setShowForm(false)} className="border-white/10 text-white">
-                    Cancel
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {loadingData ? (
-            <div className="col-span-full flex items-center justify-center py-8">
-              <div className="w-8 h-8 border-2 border-neon-lime border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : batches.length === 0 ? (
-            <div className="col-span-full text-center py-8 text-white/50">No batches created yet</div>
-          ) : (
-            batches.map((batch) => (
+        {loadingData ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="w-8 h-8 border-2 border-neon-lime border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : batches.length === 0 ? (
+          <div className="text-center py-12 text-white/50">No batches created yet</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {batches.map((batch) => (
               <Card key={batch.id} className="bg-charcoal border-white/5">
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
@@ -230,19 +202,142 @@ export default function AdminBatches() {
                     </div>
                   </div>
                   <div className="mt-4 flex items-center gap-4 text-sm text-white/50">
-                    <span className="flex items-center gap-1"><Users className="w-4 h-4" />{batch._count.enrollments} students</span>
-                    <span>{batch.department.name}</span>
+                    <span className="flex items-center gap-1"><Users className="w-4 h-4" />{batch._count?.enrollments || 0} students</span>
+                    <span>{batch.department?.name}</span>
                   </div>
-                  <div className="mt-4 pt-4 border-t border-white/5">
+                  <div className="mt-4 pt-4 border-t border-white/5 flex gap-2 justify-end">
+                    <Button size="sm" variant="ghost" onClick={() => handleEdit(batch)} className="text-white hover:text-white/80">
+                      Edit
+                    </Button>
                     <Button size="sm" variant="ghost" onClick={() => handleDelete(batch.id)} className="text-red-500 hover:text-red-400">
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 </CardContent>
               </Card>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
+
+        {/* Create Dialog */}
+        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+          <DialogContent className="bg-charcoal border-white/10 text-white">
+            <DialogHeader>
+              <DialogTitle>Create New Batch</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Batch Name</Label>
+                <Input
+                  value={createFormData.name}
+                  onChange={(e) => setCreateFormData({ ...createFormData, name: e.target.value })}
+                  placeholder="e.g. 2024 Computer Science A"
+                  className="bg-white/5 border-white/10"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Year</Label>
+                  <Input
+                    type="number"
+                    value={createFormData.year}
+                    onChange={(e) => setCreateFormData({ ...createFormData, year: parseInt(e.target.value) })}
+                    className="bg-white/5 border-white/10"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Semester</Label>
+                  <Input
+                    type="number"
+                    value={createFormData.semester}
+                    onChange={(e) => setCreateFormData({ ...createFormData, semester: parseInt(e.target.value) })}
+                    className="bg-white/5 border-white/10"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Department</Label>
+                <Select
+                  value={createFormData.departmentId}
+                  onValueChange={(val) => setCreateFormData({ ...createFormData, departmentId: val })}
+                >
+                  <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                    <SelectValue placeholder="Select Department" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-charcoal border-white/10 text-white">
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex justify-end gap-2 mt-4">
+                <Button variant="ghost" onClick={() => setShowCreateDialog(false)}>Cancel</Button>
+                <Button onClick={handleCreate} disabled={submitting} className="bg-neon-lime text-obsidian">Create</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Dialog */}
+        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+          <DialogContent className="bg-charcoal border-white/10 text-white">
+            <DialogHeader>
+              <DialogTitle>Edit Batch</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Batch Name</Label>
+                <Input
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  className="bg-white/5 border-white/10"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Year</Label>
+                  <Input
+                    type="number"
+                    value={editFormData.year}
+                    onChange={(e) => setEditFormData({ ...editFormData, year: parseInt(e.target.value) })}
+                    className="bg-white/5 border-white/10"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Semester</Label>
+                  <Input
+                    type="number"
+                    value={editFormData.semester}
+                    onChange={(e) => setEditFormData({ ...editFormData, semester: parseInt(e.target.value) })}
+                    className="bg-white/5 border-white/10"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Department</Label>
+                <Select
+                  value={editFormData.departmentId}
+                  onValueChange={(val) => setEditFormData({ ...editFormData, departmentId: val })}
+                >
+                  <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                    <SelectValue placeholder="Select Department" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-charcoal border-white/10 text-white">
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex justify-end gap-2 mt-4">
+                <Button variant="ghost" onClick={() => setShowEditDialog(false)}>Cancel</Button>
+                <Button onClick={handleUpdate} disabled={submitting} className="bg-neon-lime text-obsidian">Save Changes</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
       </div>
     </DashboardLayout>
   )

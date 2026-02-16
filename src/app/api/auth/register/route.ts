@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { verifyRole } from '@/lib/auth-verification'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,34 +9,16 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
-    // SECURITY CHECK 1: Verify request has Firebase auth header
-    const firebaseUid = request.headers.get('x-firebase-uid')
-    
-    if (!firebaseUid) {
+    // SECURITY CHECK: Verify requesting user is a PRINCIPAL
+    const authResult = await verifyRole(request, ['PRINCIPAL'])
+    if (!authResult) {
       return NextResponse.json(
-        { error: 'Unauthorized - Authentication required' },
+        { error: 'Unauthorized - Only PRINCIPAL can create users' },
         { status: 401 }
       )
     }
 
-    // SECURITY CHECK 2: Verify requesting user exists and is a PRINCIPAL
-    const requestingUser = await prisma.user.findUnique({
-      where: { firebaseUid }
-    })
-
-    if (!requestingUser) {
-      return NextResponse.json(
-        { error: 'Unauthorized - User not found' },
-        { status: 401 }
-      )
-    }
-
-    if (requestingUser.role !== 'PRINCIPAL') {
-      return NextResponse.json(
-        { error: 'Forbidden - Only PRINCIPAL can create users' },
-        { status: 403 }
-      )
-    }
+    const { prismaUser: requestingUser } = authResult
 
     // Parse request body
     const body = await request.json()
@@ -46,14 +29,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
-      )
-    }
-
-    // SECURITY CHECK 3: Prevent privilege escalation - only PRINCIPAL can create PRINCIPAL
-    if (role === 'PRINCIPAL' && requestingUser.role !== 'PRINCIPAL') {
-      return NextResponse.json(
-        { error: 'Forbidden - Cannot create PRINCIPAL users' },
-        { status: 403 }
       )
     }
 
