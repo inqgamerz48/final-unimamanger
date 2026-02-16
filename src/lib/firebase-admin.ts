@@ -2,10 +2,10 @@ import { initializeApp, cert, getApps, App } from 'firebase-admin/app'
 import { getAuth, Auth } from 'firebase-admin/auth'
 
 let _app: App
-let _auth: Auth
+let _authInstance: Auth
 
 function initAuth() {
-  if (_auth) return _auth
+  if (_authInstance) return _authInstance
 
   const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n')
 
@@ -25,11 +25,11 @@ function initAuth() {
     _app = getApps()[0]
   }
 
-  _auth = getAuth(_app)
-  return _auth
+  _authInstance = getAuth(_app)
+  return _authInstance
 }
 
-export const auth: Auth = {
+export const auth = {
   verifyIdToken: (token: string) => initAuth().verifyIdToken(token),
   getUser: (uid: string) => initAuth().getUser(uid),
   getUserByEmail: (email: string) => initAuth().getUserByEmail(email),
