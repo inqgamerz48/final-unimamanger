@@ -4,7 +4,7 @@
   
   # 🎓 UNI Manager
   ### Enterprise-Grade University Management System
-  
+
   [![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat-square&logo=next.js)](https://nextjs.org/)
   [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
   [![Prisma](https://img.shields.io/badge/Prisma-5.10-2D3748?style=flat-square&logo=prisma)](https://prisma.io/)
@@ -13,38 +13,46 @@
   [![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
   
   **A comprehensive, secure, and scalable university management platform built with modern web technologies.**
-  
-  [🚀 Live Demo](https://uni-manager-demo.vercel.app) • [📖 Documentation](https://docs.uni-manager.dev) • [🐛 Report Bug](https://github.com/yourusername/uni-manager/issues)
-  
+
+  [🚀 Live Demo](https://final-unimamanger.vercel.app) • [🐛 Report Bug](https://github.com/inqgamerz48/final-unimamanger/issues)
+
 </div>
 
 ---
 
 ## ✨ Features
 
-### 🏛️ **Multi-Role Architecture**
-- **Principal** - Full system administration
-- **HOD** - Department-level management  
-- **Faculty** - Teaching and grading
-- **Student** - Learning and submissions
+### 🏛️ Multi-Role Architecture
+- **Principal** - Full system administration, college settings, all departments
+- **HOD** - Department-level management, reports, faculty/student oversight
+- **Faculty** - Teaching, attendance, grades, assignments
+- **Student** - Learning portal, submissions, fees, complaints
 
-### 📚 **Academic Management**
-- ✅ **Attendance Tracking** - Daily/monthly reports with statistics
+### 📚 Academic Management
+- ✅ **Attendance Tracking** - Daily/monthly reports with statistics (faculty marks, students view)
 - ✅ **Assignment Management** - Create, submit, and grade assignments
 - ✅ **Grade Management** - Exam marks entry (MST1, MST2, Final)
-- ✅ **Course Management** - Subjects, batches, and departments
-- ✅ **Fee Management** - Track dues and payments
+- ✅ **Course/Subject Management** - Subjects, batches, departments
+- ✅ **Fee Management** - Track dues, payments, fee types
+- ✅ **Batch Management** - Year/semester based batch creation
 
-### 🔔 **Communication Hub**
-- ✅ **Notices & Announcements** - Centralized communication
+### 🔔 Communication Hub
+- ✅ **Notices & Announcements** - Centralized communication (admin, faculty, student notices)
 - ✅ **Complaint System** - Student grievance tracking with resolution workflow
+- ✅ **Dashboard Notifications** - Role-based dashboards with stats
 
-### 🔐 **Enterprise Security**
+### 📊 Reports & Analytics
+- ✅ **HOD Reports** - Student lists, faculty lists, attendance, fees, performance
+- ✅ **PDF Generation** - Download reports as PDF files
+- ✅ **Department Statistics** - Student count, faculty count, subjects, batches
+
+### 🔐 Enterprise Security
 - ✅ **Role-Based Access Control (RBAC)** - Strict permission enforcement
 - ✅ **Firebase Authentication** - Secure user management
 - ✅ **IDOR Prevention** - Users can only access their own data
 - ✅ **Input Validation** - Zod schema validation on all inputs
 - ✅ **API Security** - Authentication headers on all requests
+- ✅ **Department Isolation** - HODs can only access their department data
 
 ---
 
@@ -57,81 +65,76 @@
 | **Backend** | Next.js API Routes, Firebase Admin SDK |
 | **Database** | PostgreSQL (Neon), Prisma ORM |
 | **Auth** | Firebase Authentication |
-| **Validation** | Zod |
-| **Deployment** | Vercel (recommended) |
+| **PDF** | jsPDF, jsPDF-AutoTable |
+| **Deployment** | Vercel |
 
 ---
 
-## 📦 Installation
+## 📦 Current Capabilities
 
-### Prerequisites
-- Node.js 18+ 
-- PostgreSQL database (Neon recommended)
-- Firebase project
+### Principal (Admin) Capabilities
+- College settings configuration
+- Department management (create, edit, delete)
+- Batch management (create, edit, delete)
+- Subject management (create, edit, delete)
+- User management (create users, assign roles)
+- Fee management (create fees, view payments)
+- View all complaints and resolve them
+- Post notices for all departments
 
-### 1. Clone the Repository
+### HOD Capabilities
+- View department students
+- View department faculty
+- Manage subjects for department
+- Manage batches for department
+- Post notices for department
+- View attendance reports
+- Generate PDF reports (students, faculty, fees, performance)
 
-```bash
-git clone https://github.com/yourusername/uni-manager.git
-cd uni-manager
-```
+### Faculty Capabilities
+- View assigned subjects
+- Mark attendance for students
+- Create and manage assignments
+- Grade student submissions
+- Enter exam marks (MST1, MST2, Final)
+- Post notices for students
+- View notices
 
-### 2. Install Dependencies
+### Student Capabilities
+- View assigned subjects
+- View attendance records
+- View and submit assignments
+- View grades
+- View and pay fees
+- Submit complaints
+- View notices
 
-```bash
-npm install
-```
+---
 
-### 3. Environment Setup
+## ⚠️ Limitations & Known Issues
 
-Copy the example environment file:
+### Database Schema Sync
+- Some environments may have database schema mismatches
+- Run `npx prisma db push` or use provided SQL migration files
+- Missing columns: `academicYear` in CollegeSettings, `feeType` in Fee
 
-```bash
-cp .env.example .env.local
-```
+### Authentication
+- Firebase Admin SDK requires proper environment variables
+- Build may fail locally without Firebase credentials (works on Vercel with env vars set)
 
-Fill in your environment variables:
+### Features In Progress
+- ❌ Timetable management
+- ❌ Library management
+- ❌ Transport management
+- ❌ Hostel management
+- ❌ Exam scheduling
+- ❌ Parent portal
+- ❌ Email notifications (UI only)
+- ❌ Real-time notifications
 
-```env
-# Database (Neon PostgreSQL)
-DATABASE_URL="postgresql://user:password@host.neon.tech/dbname?sslmode=require"
-
-# Firebase Configuration
-NEXT_PUBLIC_FIREBASE_API_KEY=your-api-key
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
-NEXT_PUBLIC_FIREBASE_APP_ID=your-app-id
-
-# Firebase Admin (for server-side)
-FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-FIREBASE_ADMIN_CLIENT_EMAIL=firebase-adminsdk@your-project.iam.gserviceaccount.com
-
-# App Config
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
-
-### 4. Database Setup
-
-```bash
-# Generate Prisma client
-npx prisma generate
-
-# Run database migrations
-npx prisma migrate dev
-
-# (Optional) Seed the database
-npx prisma db seed
-```
-
-### 5. Run Development Server
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+### Browser Support
+- Requires modern browser with JavaScript enabled
+- Best supported in Chrome, Firefox, Edge (latest versions)
 
 ---
 
@@ -141,23 +144,28 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 uni-manager/
 ├── src/
 │   ├── app/                    # Next.js 14 App Router
-│   │   ├── (auth)/            # Authentication routes
-│   │   ├── admin/             # Admin panel
-│   │   ├── faculty/           # Faculty portal
-│   │   ├── student/           # Student portal
-│   │   └── api/               # API routes
+│   │   ├── admin/             # Admin panel pages
+│   │   ├── faculty/           # Faculty portal pages
+│   │   ├── hod/              # HOD dashboard pages
+│   │   ├── student/           # Student portal pages
+│   │   ├── login/             # Login page
+│   │   └── api/              # API routes
 │   │       ├── admin/         # Admin APIs
 │   │       ├── faculty/       # Faculty APIs
+│   │       ├── hod/           # HOD APIs
 │   │       ├── student/       # Student APIs
 │   │       └── auth/          # Auth APIs
 │   ├── components/            # Reusable UI components
+│   │   ├── layout/           # Layout components
+│   │   ├── hod/               # HOD-specific components
 │   │   └── ui/               # shadcn/ui components
-│   ├── context/              # React contexts
-│   ├── lib/                  # Utilities & configurations
+│   ├── context/               # React contexts (auth)
+│   ├── lib/                  # Utilities
 │   │   ├── validations.ts    # Zod schemas
 │   │   ├── firebase.ts       # Firebase client
 │   │   ├── firebase-admin.ts # Firebase admin
-│   │   └── prisma.ts         # Prisma client
+│   │   ├── prisma.ts         # Prisma client
+│   │   └── pdf-utils.ts      # PDF generation
 │   └── types/                # TypeScript types
 ├── prisma/
 │   └── schema.prisma         # Database schema
@@ -166,89 +174,79 @@ uni-manager/
 
 ---
 
-## 🔐 Security Features
+## 🔧 Challenges Faced
 
-### Multi-Layer Security Architecture
+### 1. Database Schema Migrations
+**Challenge:** Prisma schema was updated but production database wasn't synced
+**Solution:** Created manual SQL migration files for Neon SQL editor
 
-1. **Authentication Layer**
-   - Firebase Auth for secure user management
-   - JWT token verification on every request
-   - Session management with secure cookies
+### 2. Firebase Admin Initialization
+**Challenge:** Firebase Admin SDK throws errors during SSR/build without credentials
+**Solution:** Lazy initialization pattern - auth only initializes when actually called
 
-2. **Authorization Layer**
-   - Strict RBAC enforcement on all API endpoints
-   - Role-based route protection
-   - Department-level isolation for HODs
+### 3. Role-Based Access Control
+**Challenge:** Different roles need different data access levels (e.g., HODs only see their department)
+**Solution:** Added departmentId filtering in API queries based on user role
 
-3. **Data Protection**
-   - IDOR (Insecure Direct Object Reference) prevention
-   - Input validation with Zod schemas
-   - SQL injection prevention via Prisma ORM
+### 4. PDF Generation in Client
+**Challenge:** jsPDF doesn't work with SSR/Next.js build
+**Solution:** Used dynamic imports and async functions to load PDF libraries in browser only
 
-4. **API Security**
-   - All endpoints require authentication headers
-   - Faculty can only access their assigned subjects
-   - Students can only view their own records
+### 5. Attendance UI Consistency
+**Challenge:** Faculty attendance page had different styling than other pages
+**Solution:** Refactored to use DashboardLayout and consistent dark theme
 
 ---
 
-## 📱 Screenshots
+## 📦 Installation
 
-<div align="center">
+### Prerequisites
+- Node.js 18+
+- PostgreSQL database (Neon recommended)
+- Firebase project
 
-| Admin Dashboard | Faculty Portal | Student View |
-|----------------|----------------|--------------|
-| ![Admin](docs/images/admin-dashboard.png) | ![Faculty](docs/images/faculty-portal.png) | ![Student](docs/images/student-view.png) |
-
-</div>
-
----
-
-## 🎯 Usage Guide
-
-### First-Time Setup
-
-1. **Create First Admin (Principal)**
-   ```bash
-   # Use the setup script or manually create via Prisma Studio
-   npx prisma studio
-   ```
-
-2. **Login as Principal**
-   - Navigate to `/login`
-   - Use the credentials created in step 1
-
-3. **Setup College Structure**
-   - Create Departments
-   - Create Batches (Year/Semester)
-   - Create Subjects
-
-4. **Add Users**
-   - Create HODs and assign them to departments
-   - Create Faculty and assign subjects
-   - Create Students
-
-### Daily Workflows
-
-**📊 Attendance Tracking**
-```
-Faculty → Attendance → Select Subject → Mark Present/Absent → Save
+### 1. Clone the Repository
+```bash
+git clone https://github.com/inqgamerz48/final-unimamanger.git
+cd final-unimamanger
 ```
 
-**📝 Assignment Management**
-```
-Faculty → Assignments → Create New → Set Due Date → Students Submit → Faculty Grades
-```
-
-**📈 Grade Entry**
-```
-Faculty → Grades → Select Subject → Enter Marks → Save
+### 2. Install Dependencies
+```bash
+npm install
 ```
 
-**💬 Complaint Resolution**
+### 3. Environment Setup
+```bash
+cp .env.example .env.local
 ```
-Student → Complaints → Submit New
-Admin → Complaints → View → Resolve/Reject
+
+Fill in your environment variables:
+```env
+DATABASE_URL="postgresql://user:password@host.neon.tech/dbname?sslmode=require"
+
+NEXT_PUBLIC_FIREBASE_API_KEY=your-api-key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
+NEXT_PUBLIC_FIREBASE_APP_ID=your-app-id
+
+FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+FIREBASE_ADMIN_CLIENT_EMAIL=firebase-adminsdk@your-project.iam.gserviceaccount.com
+
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+### 4. Database Setup
+```bash
+npx prisma generate
+npx prisma db push
+```
+
+### 5. Run Development Server
+```bash
+npm run dev
 ```
 
 ---
@@ -267,116 +265,91 @@ Admin → Complaints → View → Resolve/Reject
 2. **Connect to Vercel**
    - Go to [Vercel Dashboard](https://vercel.com/dashboard)
    - Import your GitHub repository
-   - Add environment variables from `.env.local`
+   - Add environment variables
    - Deploy!
 
-3. **Database Migration**
-   ```bash
-   # Run migrations on production database
-   npx prisma migrate deploy
-   ```
-
-### Production Checklist
-
-- [ ] Set up production Firebase project
-- [ ] Configure production database (Neon/Supabase)
-- [ ] Set up environment variables in hosting platform
-- [ ] Enable Firebase Auth email/password provider
-- [ ] Configure Firebase Admin SDK credentials
-- [ ] Run database migrations
-- [ ] Create first Principal user
-- [ ] Test all critical workflows
+3. **Run SQL Migrations**
+   - Use the SQL files in the root directory to update your Neon database schema
+   - Or run `npx prisma db push` if using Prisma migrate
 
 ---
 
-## 🧪 Testing
+## 📝 Usage Guide
 
-```bash
-# Run unit tests
-npm run test
+### First-Time Setup (Principal)
 
-# Run integration tests
-npm run test:integration
+1. **Create Principal User**
+   - Use the admin setup page at `/admin/setup`
+   - Or manually create via Prisma Studio: `npx prisma studio`
 
-# Run e2e tests
-npm run test:e2e
+2. **Setup College**
+   - Login as Principal
+   - Go to Settings → College Settings
+   - Configure college name, academic year
+
+3. **Create Departments**
+   - Admin → Departments → Create Department
+
+4. **Create Batches**
+   - Admin → Batches → Create Batch (Year/Semester)
+
+5. **Create Subjects**
+   - Admin → Subjects → Add Subject
+
+6. **Add Users**
+   - Admin → Users → Create HODs, Faculty, Students
+
+### Daily Workflows
+
+**📊 Attendance**
+```
+Faculty → Attendance → Select Subject → Mark Status → Save
+```
+
+**📝 Grades**
+```
+Faculty → Grades → Select Subject → Enter Marks → Save
+```
+
+**📄 Reports (HOD)**
+```
+HOD → Reports → Select Report Type → Generate → Download PDF
 ```
 
 ---
 
-## 🛠️ Development
+## 🧪 Testing Checklist
 
-### Code Quality
-
-```bash
-# Run ESLint
-npm run lint
-
-# Fix ESLint errors
-npm run lint:fix
-
-# Type check
-npm run type-check
-```
-
-### Database Management
-
-```bash
-# Open Prisma Studio
-npx prisma studio
-
-# Create migration
-npx prisma migrate dev --name migration_name
-
-# Reset database
-npx prisma migrate reset
-
-# Seed database
-npx prisma db seed
-```
+- [ ] Principal can create departments, batches, subjects
+- [ ] HOD can view department data and generate reports
+- [ ] Faculty can mark attendance and enter grades
+- [ ] Students can view attendance, submit assignments
+- [ ] Fee creation works (requires database migration)
+- [ ] PDF reports download correctly
+- [ ] Notices appear for correct roles
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions! Please follow these steps:
-
-1. **Fork the repository**
-2. **Create a feature branch**
-   ```bash
-   git checkout -b feature/amazing-feature
-   ```
-3. **Make your changes**
-4. **Commit with clear messages**
-   ```bash
-   git commit -m "Add: amazing feature description"
-   ```
-5. **Push to your fork**
-   ```bash
-   git push origin feature/amazing-feature
-   ```
-6. **Open a Pull Request**
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Commit with clear messages
+5. Push to your fork
+6. Open a Pull Request
 
 ### Commit Convention
-
 - `Add:` New features
 - `Fix:` Bug fixes
 - `Update:` Modifications
-- `Remove:` Deletions
 - `Docs:` Documentation changes
-- `Security:` Security improvements
-
----
-
-## 📊 Project Stats
-
-![GitHub Stats](https://github-readme-stats.vercel.app/api?username=yourusername&repo=uni-manager&show_icons=true&theme=tokyonight)
 
 ---
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.
 
 ---
 
@@ -388,16 +361,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS
 - [Radix UI](https://www.radix-ui.com/) - Unstyled accessible components
 - [shadcn/ui](https://ui.shadcn.com/) - Beautifully designed components
-
----
-
-## 📞 Support
-
-Need help? Have questions?
-
-- 📧 Email: support@uni-manager.dev
-- 💬 Discord: [Join our community](https://discord.gg/uni-manager)
-- 🐛 Issues: [GitHub Issues](https://github.com/yourusername/uni-manager/issues)
 
 ---
 
