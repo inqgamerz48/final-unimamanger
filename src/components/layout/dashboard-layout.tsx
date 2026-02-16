@@ -28,6 +28,7 @@ const navigationByRole: Record<string, { name: string; href: string; icon: any }
   PRINCIPAL: [
     { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
     { name: 'Departments', href: '/admin/departments', icon: Building2 },
+    { name: 'Batches', href: '/admin/batches', icon: ClipboardList },
     { name: 'Students', href: '/admin/users?role=STUDENT', icon: Users },
     { name: 'Faculty', href: '/admin/users?role=FACULTY', icon: GraduationCap },
     { name: 'Courses', href: '/admin/subjects', icon: BookOpen },
@@ -39,6 +40,7 @@ const navigationByRole: Record<string, { name: string; href: string; icon: any }
   HOD: [
     { name: 'Dashboard', href: '/hod/dashboard', icon: LayoutDashboard },
     { name: 'My Department', href: '/hod/department', icon: Building2 },
+    { name: 'Batches', href: '/hod/batches', icon: ClipboardList },
     { name: 'Faculty', href: '/hod/faculty', icon: GraduationCap },
     { name: 'Students', href: '/hod/students', icon: Users },
     { name: 'Courses', href: '/hod/courses', icon: BookOpen },
