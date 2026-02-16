@@ -8,21 +8,27 @@ import { auth } from '@/lib/firebase-admin'
 export async function verifyAuthToken(request: NextRequest): Promise<{ uid: string; decodedToken: any } | null> {
   try {
     // Get token from Authorization header (Bearer token)
+    let token = ''
     const authHeader = request.headers.get('Authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.error('No Authorization header or invalid format')
-      return null
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split('Bearer ')[1]
+    } else {
+      // Fallback: Try getting token from cookie
+      const cookieToken = request.cookies.get('firebase-token')?.value
+      if (cookieToken) {
+        token = cookieToken
+      }
     }
 
-    const token = authHeader.split('Bearer ')[1]
     if (!token) {
-      console.error('No token found in Authorization header')
+      console.error('No token found in Authorization header or cookies')
       return null
     }
 
     // Verify token with Firebase Admin
     const decodedToken = await auth.verifyIdToken(token)
-    
+
     if (!decodedToken.uid) {
       console.error('Token verified but no UID found')
       return null
@@ -40,11 +46,11 @@ export async function verifyAuthToken(request: NextRequest): Promise<{ uid: stri
  * Returns user object or null if not found/unauthorized
  */
 export async function verifyRole(
-  request: NextRequest, 
+  request: NextRequest,
   allowedRoles: string[]
 ): Promise<{ user: any; prismaUser: any } | null> {
   const authResult = await verifyAuthToken(request)
-  
+
   if (!authResult) {
     return null
   }
