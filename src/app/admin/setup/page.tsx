@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/auth-context'
+import { getAuthHeaders } from '@/lib/api-helpers'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -71,14 +72,6 @@ export default function SetupWizard() {
     }
   }, [user, loading, router])
 
-  const getAuthHeaders = (): Record<string, string> => {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (firebaseUser?.uid) {
-      headers['x-firebase-uid'] = firebaseUser.uid
-    }
-    return headers
-  }
-
   const handleNext = () => {
     if (currentStep < steps.length) {
       setCompletedSteps([...completedSteps, currentStep])
@@ -96,9 +89,10 @@ export default function SetupWizard() {
   const handleSaveCollege = async () => {
     setIsSubmitting(true)
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch('/api/admin/setup/college', {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers,
         body: JSON.stringify(collegeData),
       })
 
@@ -120,9 +114,10 @@ export default function SetupWizard() {
   const handleSaveDepartment = async () => {
     setIsSubmitting(true)
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch('/api/admin/setup/department', {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers,
         body: JSON.stringify(departmentData),
       })
 
@@ -156,9 +151,10 @@ export default function SetupWizard() {
     setIsSubmitting(true)
     try {
       // Create HOD
+      const headers = await getAuthHeaders(firebaseUser)
       const hodRes = await fetch('/api/admin/setup/hod', {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers,
         body: JSON.stringify({ ...hodData, departmentId }),
       })
 
@@ -172,7 +168,7 @@ export default function SetupWizard() {
       // Create Faculty
       const facultyRes = await fetch('/api/admin/setup/faculty', {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers,
         body: JSON.stringify({ ...facultyData, departmentId }),
       })
 
@@ -196,9 +192,10 @@ export default function SetupWizard() {
   const handleCompleteSetup = async () => {
     setIsSubmitting(true)
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch('/api/admin/setup/complete', {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers,
       })
 
       if (res.ok) {

@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { markFeePaidSchema } from '@/lib/validations'
 import { verifyRole } from '@/lib/auth-verification'
 
+export const dynamic = 'force-dynamic'
+
 // POST - Mark fee as paid (HOD can only mark, not edit other details)
 export async function POST(
   request: NextRequest,

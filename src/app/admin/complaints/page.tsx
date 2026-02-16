@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/auth-context'
+import { getAuthHeaders } from '@/lib/api-helpers'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -26,14 +27,6 @@ export default function AdminComplaints() {
   const [loadingData, setLoadingData] = useState(true)
   const [filter, setFilter] = useState('all')
 
-  const getAuthHeaders = (): Record<string, string> => {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (firebaseUser?.uid) {
-      headers['x-firebase-uid'] = firebaseUser.uid
-    }
-    return headers
-  }
-
   useEffect(() => {
     if (!loading && user && user.role !== 'PRINCIPAL' && user.role !== 'HOD') {
       router.push('/')
@@ -48,7 +41,8 @@ export default function AdminComplaints() {
 
   const fetchComplaints = async () => {
     try {
-      const res = await fetch('/api/admin/complaints', { headers: getAuthHeaders() })
+      const headers = await getAuthHeaders(firebaseUser)
+      const res = await fetch('/api/admin/complaints', { headers })
       if (res.ok) {
         const data = await res.json()
         setComplaints(data)
@@ -62,7 +56,8 @@ export default function AdminComplaints() {
 
   const handleResolve = async (id: string) => {
     try {
-      const res = await fetch(`/api/admin/complaints/${id}/resolve`, { method: 'POST', headers: getAuthHeaders() })
+      const headers = await getAuthHeaders(firebaseUser)
+      const res = await fetch(`/api/admin/complaints/${id}/resolve`, { method: 'POST', headers })
       if (res.ok) fetchComplaints()
     } catch (error) {
       console.error('Error resolving complaint:', error)
@@ -71,7 +66,8 @@ export default function AdminComplaints() {
 
   const handleReject = async (id: string) => {
     try {
-      const res = await fetch(`/api/admin/complaints/${id}/reject`, { method: 'POST', headers: getAuthHeaders() })
+      const headers = await getAuthHeaders(firebaseUser)
+      const res = await fetch(`/api/admin/complaints/${id}/reject`, { method: 'POST', headers })
       if (res.ok) fetchComplaints()
     } catch (error) {
       console.error('Error rejecting complaint:', error)

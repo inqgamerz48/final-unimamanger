@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/auth-context'
+import { getAuthHeaders } from '@/lib/api-helpers'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -49,14 +50,6 @@ export default function AdminSubjects() {
     name: '', code: '', departmentId: '', batchId: '', facultyId: ''
   })
 
-  const getAuthHeaders = (): Record<string, string> => {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (firebaseUser?.uid) {
-      headers['x-firebase-uid'] = firebaseUser.uid
-    }
-    return headers
-  }
-
   useEffect(() => {
     if (!loading && user && user.role !== 'PRINCIPAL') {
       router.push('/')
@@ -71,11 +64,12 @@ export default function AdminSubjects() {
 
   const fetchData = async () => {
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const [subjectsRes, deptsRes, batchesRes, facultyRes] = await Promise.all([
-        fetch('/api/admin/subjects', { headers: getAuthHeaders() }),
-        fetch('/api/admin/departments', { headers: getAuthHeaders() }),
-        fetch('/api/admin/batches', { headers: getAuthHeaders() }),
-        fetch('/api/admin/faculty', { headers: getAuthHeaders() })
+        fetch('/api/admin/subjects', { headers }),
+        fetch('/api/admin/departments', { headers }),
+        fetch('/api/admin/batches', { headers }),
+        fetch('/api/admin/faculty', { headers })
       ])
       if (subjectsRes.ok) setSubjects(await subjectsRes.json())
       if (deptsRes.ok) setDepartments(await deptsRes.json())
@@ -92,9 +86,10 @@ export default function AdminSubjects() {
     e.preventDefault()
     setSubmitting(true)
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch('/api/admin/subjects', {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers,
         body: JSON.stringify({ ...formData, facultyId: formData.facultyId || null }),
       })
       if (res.ok) {
@@ -112,7 +107,8 @@ export default function AdminSubjects() {
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this subject?')) return
     try {
-      const res = await fetch(`/api/admin/subjects/${id}`, { method: 'DELETE', headers: getAuthHeaders() })
+      const headers = await getAuthHeaders(firebaseUser)
+      const res = await fetch(`/api/admin/subjects/${id}`, { method: 'DELETE', headers })
       if (res.ok) fetchData()
     } catch (error) {
       console.error('Error deleting subject:', error)

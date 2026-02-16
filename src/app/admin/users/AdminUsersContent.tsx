@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/context/auth-context'
+import { getAuthHeaders } from '@/lib/api-helpers'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -45,15 +46,6 @@ export default function AdminUsersContent() {
   const [roleFilter, setRoleFilter] = useState<string>(searchParams.get('role') || 'all')
   const [searchTerm, setSearchTerm] = useState('')
 
-  // Get auth headers for API calls
-  const getAuthHeaders = (): Record<string, string> => {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (firebaseUser?.uid) {
-      headers['x-firebase-uid'] = firebaseUser.uid
-    }
-    return headers
-  }
-
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -86,8 +78,9 @@ export default function AdminUsersContent() {
 
   const fetchUsers = async () => {
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch('/api/admin/users', {
-        headers: getAuthHeaders(),
+        headers,
       })
       if (res.ok) {
         const data = await res.json()
@@ -102,8 +95,9 @@ export default function AdminUsersContent() {
 
   const fetchDepartments = async () => {
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch('/api/admin/departments', {
-        headers: getAuthHeaders(),
+        headers,
       })
       if (res.ok) {
         const data = await res.json()
@@ -118,9 +112,10 @@ export default function AdminUsersContent() {
     e.preventDefault()
     setSubmitting(true)
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch('/api/admin/users', {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers,
         body: JSON.stringify({
           ...formData,
           departmentId: formData.departmentId || undefined,
@@ -149,9 +144,10 @@ export default function AdminUsersContent() {
 
     setSubmitting(true)
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch(`/api/admin/users/${editingUser.id}`, {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        headers,
         body: JSON.stringify({
           fullName: formData.fullName,
           role: formData.role,
@@ -184,9 +180,10 @@ export default function AdminUsersContent() {
     }
 
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch(`/api/admin/users/${userId}`, {
         method: 'DELETE',
-        headers: getAuthHeaders(),
+        headers,
       })
 
       if (res.ok) {

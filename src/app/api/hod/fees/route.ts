@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { createFeeSchema, updateFeeSchema } from '@/lib/validations'
 import { verifyRole } from '@/lib/auth-verification'
 
+export const dynamic = 'force-dynamic'
+
 // GET - List fees for HOD's department
 export async function GET(request: NextRequest) {
   try {

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/auth-context'
+import { getAuthHeaders } from '@/lib/api-helpers'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -26,14 +27,6 @@ export default function StudentNotices() {
   const [notices, setNotices] = useState<Notice[]>([])
   const [loadingData, setLoadingData] = useState(true)
 
-  const getAuthHeaders = (): Record<string, string> => {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (firebaseUser?.uid) {
-      headers['x-firebase-uid'] = firebaseUser.uid
-    }
-    return headers
-  }
-
   useEffect(() => {
     if (!loading && user && user.role !== 'STUDENT') {
       router.push('/')
@@ -48,7 +41,8 @@ export default function StudentNotices() {
 
   const fetchNotices = async () => {
     try {
-      const res = await fetch('/api/student/notices', { headers: getAuthHeaders() })
+      const headers = await getAuthHeaders(firebaseUser)
+      const res = await fetch('/api/student/notices', { headers })
       if (res.ok) {
         const data = await res.json()
         setNotices(data)

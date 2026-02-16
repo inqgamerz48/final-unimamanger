@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/auth-context'
+import { getAuthHeaders } from '@/lib/api-helpers'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -73,17 +74,10 @@ export default function AdminSettings() {
     }
   }, [user])
 
-  const getAuthHeaders = (): Record<string, string> => {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (firebaseUser?.uid) {
-      headers['x-firebase-uid'] = firebaseUser.uid
-    }
-    return headers
-  }
-
   const fetchSettings = async () => {
     try {
-      const res = await fetch('/api/settings', { headers: getAuthHeaders() })
+      const headers = await getAuthHeaders(firebaseUser)
+      const res = await fetch('/api/settings', { headers })
       if (res.ok) {
         const data = await res.json()
         setNotificationSettings({
@@ -103,7 +97,8 @@ export default function AdminSettings() {
 
   const fetchCollegeSettings = async () => {
     try {
-      const res = await fetch('/api/admin/college-settings', { headers: getAuthHeaders() })
+      const headers = await getAuthHeaders(firebaseUser)
+      const res = await fetch('/api/admin/college-settings', { headers })
       if (res.ok) {
         const data = await res.json()
         setCollegeData({
@@ -123,9 +118,10 @@ export default function AdminSettings() {
   const handleSaveProfile = async () => {
     setSaving(true)
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch('/api/settings/profile', {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        headers,
         body: JSON.stringify(profileData),
       })
       
@@ -146,9 +142,10 @@ export default function AdminSettings() {
   const handleSaveCollege = async () => {
     setSaving(true)
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch('/api/admin/college-settings', {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        headers,
         body: JSON.stringify(collegeData),
       })
       
@@ -169,9 +166,10 @@ export default function AdminSettings() {
   const handleSaveNotifications = async () => {
     setSaving(true)
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch('/api/settings', {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        headers,
         body: JSON.stringify(notificationSettings),
       })
       
@@ -197,9 +195,10 @@ export default function AdminSettings() {
 
     setSaving(true)
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch('/api/settings/password', {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        headers,
         body: JSON.stringify(passwordData),
       })
       

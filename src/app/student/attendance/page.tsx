@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/auth-context'
+import { getAuthHeaders } from '@/lib/api-helpers'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -24,14 +25,6 @@ export default function StudentAttendance() {
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([])
   const [loadingData, setLoadingData] = useState(true)
 
-  const getAuthHeaders = (): Record<string, string> => {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (firebaseUser?.uid) {
-      headers['x-firebase-uid'] = firebaseUser.uid
-    }
-    return headers
-  }
-
   useEffect(() => {
     if (!loading && user && user.role !== 'STUDENT') {
       router.push('/')
@@ -46,7 +39,8 @@ export default function StudentAttendance() {
 
   const fetchAttendance = async () => {
     try {
-      const res = await fetch('/api/student/attendance', { headers: getAuthHeaders() })
+      const headers = await getAuthHeaders(firebaseUser)
+      const res = await fetch('/api/student/attendance', { headers })
       if (res.ok) {
         const data = await res.json()
         setAttendance(data)

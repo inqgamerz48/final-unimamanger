@@ -135,30 +135,24 @@ export default function HODFees() {
     }
   }, [filters, currentPage])
 
-  const getAuthHeaders = (): Record<string, string> => {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (firebaseUser?.uid) {
-      headers['x-firebase-uid'] = firebaseUser.uid
-    }
-    return headers
-  }
-
   const fetchInitialData = async () => {
     try {
+      const headers = await getAuthHeaders(firebaseUser)
+      
       // Fetch batches for HOD's department
-      const batchRes = await fetch('/api/admin/batches', { headers: getAuthHeaders() })
+      const batchRes = await fetch('/api/admin/batches', { headers })
       if (batchRes.ok) {
         const batchData = await batchRes.json()
         // Filter batches for HOD's department
-        const deptBatches = batchData.filter((b: any) => b.department?.id === user?.departmentId)
+        const deptBatches = batchData.filter((b: { department?: { id: string } }) => b.department?.id === user?.departmentId)
         setBatches(deptBatches)
       }
       
       // Fetch students for HOD's department
-      const studentRes = await fetch('/api/admin/users?role=STUDENT', { headers: getAuthHeaders() })
+      const studentRes = await fetch('/api/admin/users?role=STUDENT', { headers })
       if (studentRes.ok) {
         const studentData = await studentRes.json()
-        const deptStudents = studentData.filter((s: any) => s.departmentId === user?.departmentId)
+        const deptStudents = studentData.filter((s: { departmentId?: string }) => s.departmentId === user?.departmentId)
         setStudents(deptStudents)
       }
     } catch (error) {
@@ -179,8 +173,9 @@ export default function HODFees() {
       if (filters.batchId) queryParams.append('batchId', filters.batchId)
       if (filters.academicYear) queryParams.append('academicYear', filters.academicYear)
       
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch(`/api/hod/fees?${queryParams}`, {
-        headers: getAuthHeaders(),
+        headers,
       })
       
       if (res.ok) {
@@ -197,8 +192,9 @@ export default function HODFees() {
 
   const fetchStats = async () => {
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch(`/api/hod/fees/stats?academicYear=${filters.academicYear}`, {
-        headers: getAuthHeaders(),
+        headers,
       })
       
       if (res.ok) {
@@ -212,9 +208,10 @@ export default function HODFees() {
 
   const handleAddFee = async () => {
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch('/api/hod/fees', {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers,
         body: JSON.stringify({
           ...addFormData,
           amount: parseFloat(addFormData.amount),
@@ -247,9 +244,10 @@ export default function HODFees() {
     if (!selectedFee) return
     
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch(`/api/hod/fees/${selectedFee.id}`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers,
         body: JSON.stringify({
           ...markPaidFormData,
           amountPaid: markPaidFormData.amountPaid ? parseFloat(markPaidFormData.amountPaid) : undefined,

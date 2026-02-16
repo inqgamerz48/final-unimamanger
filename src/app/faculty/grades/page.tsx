@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/auth-context'
+import { getAuthHeaders } from '@/lib/api-helpers'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -77,18 +78,11 @@ export default function FacultyGrades() {
     }
   }, [selectedSubject])
 
-  const getAuthHeaders = (): Record<string, string> => {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (firebaseUser?.uid) {
-      headers['x-firebase-uid'] = firebaseUser.uid
-    }
-    return headers
-  }
-
   const fetchGradesData = async () => {
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch('/api/faculty/grades', {
-        headers: getAuthHeaders(),
+        headers,
       })
       if (res.ok) {
         const data = await res.json()
@@ -107,8 +101,9 @@ export default function FacultyGrades() {
 
   const fetchStudentsForSubject = async (subjectId: string) => {
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch(`/api/faculty/subjects/${subjectId}/students`, {
-        headers: getAuthHeaders(),
+        headers,
       })
       if (res.ok) {
         const data = await res.json()
@@ -139,9 +134,10 @@ export default function FacultyGrades() {
 
     setSaving(true)
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch('/api/faculty/grades', {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers,
         body: JSON.stringify({
           studentId,
           subjectId: selectedSubject,
@@ -178,9 +174,10 @@ export default function FacultyGrades() {
     if (!confirm('Are you sure you want to delete this grade?')) return
 
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch(`/api/faculty/grades?id=${gradeId}`, {
         method: 'DELETE',
-        headers: getAuthHeaders(),
+        headers,
       })
 
       if (res.ok) {

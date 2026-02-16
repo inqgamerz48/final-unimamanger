@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/auth-context'
+import { getAuthHeaders } from '@/lib/api-helpers'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -34,14 +35,6 @@ export default function FacultyAssignments() {
     dueDate: '',
   })
 
-  const getAuthHeaders = (): Record<string, string> => {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (firebaseUser?.uid) {
-      headers['x-firebase-uid'] = firebaseUser.uid
-    }
-    return headers
-  }
-
   useEffect(() => {
     if (!loading && user && user.role !== 'FACULTY') {
       router.push('/')
@@ -56,7 +49,8 @@ export default function FacultyAssignments() {
 
   const fetchSubjects = async () => {
     try {
-      const res = await fetch('/api/faculty/subjects', { headers: getAuthHeaders() })
+      const headers = await getAuthHeaders(firebaseUser)
+      const res = await fetch('/api/faculty/subjects', { headers })
       if (res.ok) {
         const data = await res.json()
         setSubjects(data)
@@ -70,9 +64,10 @@ export default function FacultyAssignments() {
     e.preventDefault()
     setSubmitting(true)
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch('/api/faculty/assignments', {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers,
         body: JSON.stringify(formData),
       })
       if (res.ok) {

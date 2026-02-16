@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/auth-context'
+import { getAuthHeaders } from '@/lib/api-helpers'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -74,14 +75,6 @@ export default function FacultyFees() {
     }
   }, [user, filters, currentPage])
 
-  const getAuthHeaders = (): Record<string, string> => {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (firebaseUser?.uid) {
-      headers['x-firebase-uid'] = firebaseUser.uid
-    }
-    return headers
-  }
-
   const fetchFees = async () => {
     try {
       setLoadingData(true)
@@ -93,8 +86,9 @@ export default function FacultyFees() {
       if (filters.status) queryParams.append('status', filters.status)
       if (filters.academicYear) queryParams.append('academicYear', filters.academicYear)
       
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch(`/api/faculty/fees?${queryParams}`, {
-        headers: getAuthHeaders(),
+        headers,
       })
       
       if (res.ok) {

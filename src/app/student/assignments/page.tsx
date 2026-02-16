@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/auth-context'
+import { getAuthHeaders } from '@/lib/api-helpers'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -33,14 +34,6 @@ export default function StudentAssignments() {
   const [loadingData, setLoadingData] = useState(true)
   const [submitting, setSubmitting] = useState<string | null>(null)
 
-  const getAuthHeaders = (): Record<string, string> => {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (firebaseUser?.uid) {
-      headers['x-firebase-uid'] = firebaseUser.uid
-    }
-    return headers
-  }
-
   useEffect(() => {
     if (!loading && user && user.role !== 'STUDENT') {
       router.push('/')
@@ -55,7 +48,8 @@ export default function StudentAssignments() {
 
   const fetchAssignments = async () => {
     try {
-      const res = await fetch('/api/student/assignments', { headers: getAuthHeaders() })
+      const headers = await getAuthHeaders(firebaseUser)
+      const res = await fetch('/api/student/assignments', { headers })
       if (res.ok) {
         const data = await res.json()
         setAssignments(data)
@@ -70,9 +64,10 @@ export default function StudentAssignments() {
   const handleSubmit = async (assignmentId: string) => {
     setSubmitting(assignmentId)
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch(`/api/student/assignments/${assignmentId}/submit`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers,
       })
       if (res.ok) {
         fetchAssignments()

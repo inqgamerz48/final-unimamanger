@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/auth-context'
+import { getAuthHeaders } from '@/lib/api-helpers'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -39,15 +40,6 @@ export default function AdminDepartments() {
   const [submitting, setSubmitting] = useState(false)
   const [formData, setFormData] = useState({ name: '', code: '', hodId: '' })
 
-  // Get auth headers for API calls
-  const getAuthHeaders = (): Record<string, string> => {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (firebaseUser?.uid) {
-      headers['x-firebase-uid'] = firebaseUser.uid
-    }
-    return headers
-  }
-
   useEffect(() => {
     if (!loading && user && user.role !== 'PRINCIPAL') {
       router.push('/')
@@ -63,8 +55,9 @@ export default function AdminDepartments() {
 
   const fetchDepartments = async () => {
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch('/api/admin/departments', {
-        headers: getAuthHeaders(),
+        headers,
       })
       if (res.ok) {
         const data = await res.json()
@@ -79,8 +72,9 @@ export default function AdminDepartments() {
 
   const fetchFacultyUsers = async () => {
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch('/api/admin/users', {
-        headers: getAuthHeaders(),
+        headers,
       })
       if (res.ok) {
         const data = await res.json()
@@ -99,9 +93,10 @@ export default function AdminDepartments() {
     e.preventDefault()
     setSubmitting(true)
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch('/api/admin/departments', {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers,
         body: JSON.stringify({
           name: formData.name,
           code: formData.code,
@@ -130,9 +125,10 @@ export default function AdminDepartments() {
     
     setSubmitting(true)
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch(`/api/admin/departments/${editingDept.id}`, {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        headers,
         body: JSON.stringify({
           name: formData.name,
           code: formData.code,
@@ -159,9 +155,10 @@ export default function AdminDepartments() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this department?')) return
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch(`/api/admin/departments/${id}`, {
         method: 'DELETE',
-        headers: getAuthHeaders(),
+        headers,
       })
       if (res.ok) {
         fetchDepartments()

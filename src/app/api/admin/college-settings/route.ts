@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { updateCollegeSettingsSchema } from '@/lib/validations'
 import { verifyRole } from '@/lib/auth-verification'
 
+export const dynamic = 'force-dynamic'
+
 // GET - Get college settings
 export async function GET(request: NextRequest) {
   try {

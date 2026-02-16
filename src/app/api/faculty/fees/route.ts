@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyRole } from '@/lib/auth-verification'
 
+export const dynamic = 'force-dynamic'
+
 // GET - View fees for students in faculty's subjects (read-only)
 export async function GET(request: NextRequest) {
   try {

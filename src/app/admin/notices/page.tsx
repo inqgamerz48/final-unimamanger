@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/auth-context'
+import { getAuthHeaders } from '@/lib/api-helpers'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -43,14 +44,6 @@ export default function AdminNotices() {
     isPinned: false,
   })
 
-  const getAuthHeaders = (): Record<string, string> => {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (firebaseUser?.uid) {
-      headers['x-firebase-uid'] = firebaseUser.uid
-    }
-    return headers
-  }
-
   useEffect(() => {
     if (!loading && user && user.role !== 'PRINCIPAL' && user.role !== 'HOD') {
       router.push('/')
@@ -66,7 +59,8 @@ export default function AdminNotices() {
 
   const fetchNotices = async () => {
     try {
-      const res = await fetch('/api/admin/notices', { headers: getAuthHeaders() })
+      const headers = await getAuthHeaders(firebaseUser)
+      const res = await fetch('/api/admin/notices', { headers })
       if (res.ok) {
         const data = await res.json()
         setNotices(data)
@@ -80,7 +74,8 @@ export default function AdminNotices() {
 
   const fetchDepartments = async () => {
     try {
-      const res = await fetch('/api/admin/departments', { headers: getAuthHeaders() })
+      const headers = await getAuthHeaders(firebaseUser)
+      const res = await fetch('/api/admin/departments', { headers })
       if (res.ok) {
         const data = await res.json()
         setDepartments(data)
@@ -94,9 +89,10 @@ export default function AdminNotices() {
     e.preventDefault()
     setSubmitting(true)
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch('/api/admin/notices', {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers,
         body: JSON.stringify({
           ...formData,
           departmentId: formData.departmentId || null,
@@ -117,7 +113,8 @@ export default function AdminNotices() {
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this notice?')) return
     try {
-      const res = await fetch(`/api/admin/notices/${id}`, { method: 'DELETE', headers: getAuthHeaders() })
+      const headers = await getAuthHeaders(firebaseUser)
+      const res = await fetch(`/api/admin/notices/${id}`, { method: 'DELETE', headers })
       if (res.ok) fetchNotices()
     } catch (error) {
       console.error('Error deleting notice:', error)

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/auth-context'
+import { getAuthHeaders } from '@/lib/api-helpers'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -40,14 +41,6 @@ export default function AdminBatches() {
     departmentId: '',
   })
 
-  const getAuthHeaders = (): Record<string, string> => {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (firebaseUser?.uid) {
-      headers['x-firebase-uid'] = firebaseUser.uid
-    }
-    return headers
-  }
-
   useEffect(() => {
     if (!loading && user && user.role !== 'PRINCIPAL') {
       router.push('/')
@@ -63,8 +56,9 @@ export default function AdminBatches() {
 
   const fetchBatches = async () => {
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch('/api/admin/batches', {
-        headers: getAuthHeaders(),
+        headers,
       })
       if (res.ok) {
         const data = await res.json()
@@ -79,8 +73,9 @@ export default function AdminBatches() {
 
   const fetchDepartments = async () => {
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch('/api/admin/departments', {
-        headers: getAuthHeaders(),
+        headers,
       })
       if (res.ok) {
         const data = await res.json()
@@ -95,9 +90,10 @@ export default function AdminBatches() {
     e.preventDefault()
     setSubmitting(true)
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch('/api/admin/batches', {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers,
         body: JSON.stringify({
           ...formData,
           year: parseInt(formData.year),
@@ -119,9 +115,10 @@ export default function AdminBatches() {
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this batch?')) return
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch(`/api/admin/batches/${id}`, {
         method: 'DELETE',
-        headers: getAuthHeaders(),
+        headers,
       })
       if (res.ok) fetchBatches()
     } catch (error) {

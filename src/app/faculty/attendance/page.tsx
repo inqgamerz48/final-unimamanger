@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/auth-context'
+import { getAuthHeaders } from '@/lib/api-helpers'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -41,14 +42,6 @@ export default function FacultyAttendance() {
   const [saving, setSaving] = useState(false)
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
 
-  const getAuthHeaders = (): Record<string, string> => {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (firebaseUser?.uid) {
-      headers['x-firebase-uid'] = firebaseUser.uid
-    }
-    return headers
-  }
-
   useEffect(() => {
     if (!loading && user && user.role !== 'FACULTY') {
       router.push('/')
@@ -69,7 +62,8 @@ export default function FacultyAttendance() {
 
   const fetchSubjects = async () => {
     try {
-      const res = await fetch('/api/faculty/subjects', { headers: getAuthHeaders() })
+      const headers = await getAuthHeaders(firebaseUser)
+      const res = await fetch('/api/faculty/subjects', { headers })
       if (res.ok) {
         const data = await res.json()
         setSubjects(data)
@@ -83,7 +77,8 @@ export default function FacultyAttendance() {
 
   const fetchStudents = async () => {
     try {
-      const res = await fetch(`/api/faculty/subjects/${selectedSubject}/students`, { headers: getAuthHeaders() })
+      const headers = await getAuthHeaders(firebaseUser)
+      const res = await fetch(`/api/faculty/subjects/${selectedSubject}/students`, { headers })
       if (res.ok) {
         const data = await res.json()
         setStudents(data)
@@ -109,9 +104,10 @@ export default function FacultyAttendance() {
 
     setSaving(true)
     try {
+      const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch('/api/faculty/attendance', {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers,
         body: JSON.stringify({
           subjectId: selectedSubject,
           date: new Date(date),
