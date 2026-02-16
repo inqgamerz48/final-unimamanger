@@ -6,12 +6,18 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    const authResult = await verifyRole(request, ['PRINCIPAL'])
+    const authResult = await verifyRole(request, ['PRINCIPAL', 'HOD'])
     if (!authResult) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const whereClause: any = {}
+    if (authResult.prismaUser.role === 'HOD' && authResult.prismaUser.departmentId) {
+      whereClause.id = authResult.prismaUser.departmentId
+    }
+
     const departments = await prisma.department.findMany({
+      where: whereClause,
       include: {
         hod: { select: { fullName: true } },
         _count: {
