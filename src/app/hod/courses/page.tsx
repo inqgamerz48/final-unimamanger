@@ -392,13 +392,13 @@ export default function HODCoursesPage() {
               <Label>Assign Faculty</Label>
               <Select
                 value={formData.facultyId}
-                onValueChange={(value) => setFormData({ ...formData, facultyId: value })}
+                onValueChange={(value) => setFormData({ ...formData, facultyId: value === '__NONE__' ? '' : value })}
               >
                 <SelectTrigger className="bg-white/5 border-white/10">
                   <SelectValue placeholder="Select faculty (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Not assigned</SelectItem>
+                  <SelectItem value="__NONE__">Not assigned</SelectItem>
                   {faculty.map((f) => (
                     <SelectItem key={f.id} value={f.id}>
                       {f.fullName}
@@ -456,14 +456,14 @@ export default function HODCoursesPage() {
             <div className="space-y-2">
               <Label>Assign Faculty</Label>
               <Select
-                value={editFormData.facultyId}
-                onValueChange={(value) => setEditFormData({ ...editFormData, facultyId: value })}
+                value={editFormData.facultyId || '__NONE__'}
+                onValueChange={(value) => setEditFormData({ ...editFormData, facultyId: value === '__NONE__' ? '' : value })}
               >
                 <SelectTrigger className="bg-white/5 border-white/10">
                   <SelectValue placeholder="Select faculty" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Not assigned</SelectItem>
+                  <SelectItem value="__NONE__">Not assigned</SelectItem>
                   {faculty.map((f) => (
                     <SelectItem key={f.id} value={f.id}>
                       {f.fullName}

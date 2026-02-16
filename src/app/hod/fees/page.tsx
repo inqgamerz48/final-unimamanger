@@ -49,7 +49,7 @@ interface Fee {
     }[]
   }
   amount: number
-  amountPaid: number
+  amountPaid?: number
   dueDate: string
   status: 'PENDING' | 'PARTIALLY_PAID' | 'PAID' | 'OVERDUE' | 'WAIVED'
   feeType: string
@@ -505,7 +505,7 @@ export default function HODFees() {
                         <td className="py-3 px-4">
                           <div>
                             <p className="text-white font-medium">₹{fee.amount.toLocaleString()}</p>
-                            {fee.status === 'PARTIALLY_PAID' && (
+                            {fee.status === 'PARTIALLY_PAID' && fee.amountPaid && (
                               <p className="text-white/50 text-sm">Paid: ₹{fee.amountPaid.toLocaleString()}</p>
                             )}
                           </div>

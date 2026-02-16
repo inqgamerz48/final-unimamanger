@@ -383,14 +383,14 @@ export default function HODNoticesPage() {
               <div className="space-y-2">
                 <Label>Target Batch</Label>
                 <Select
-                  value={formData.batchId}
-                  onValueChange={(value) => setFormData({ ...formData, batchId: value })}
+                  value={formData.batchId || '__ALL__'}
+                  onValueChange={(value) => setFormData({ ...formData, batchId: value === '__ALL__' ? '' : value })}
                 >
                   <SelectTrigger className="bg-white/5 border-white/10">
                     <SelectValue placeholder="All batches" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Batches</SelectItem>
+                    <SelectItem value="__ALL__">All Batches</SelectItem>
                     {batches.map((batch) => (
                       <SelectItem key={batch.id} value={batch.id}>
                         {batch.name}
