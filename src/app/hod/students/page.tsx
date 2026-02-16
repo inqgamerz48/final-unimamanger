@@ -27,7 +27,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Users, MoreVertical, Pencil, Trash2, Mail, Phone, IdCard } from 'lucide-react'
+import { Users, MoreVertical, Pencil, Trash2, Mail, Phone, CreditCard } from 'lucide-react'
 
 interface Batch {
   id: string
@@ -237,7 +237,7 @@ export default function HODStudentsPage() {
         <div className="text-white/70">
           {s.studentId ? (
             <div className="flex items-center gap-2">
-              <IdCard className="w-3 h-3" />
+              <CreditCard className="w-3 h-3" />
               {s.studentId}
             </div>
           ) : (
