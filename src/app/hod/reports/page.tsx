@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/auth-context'
 import { getAuthHeaders } from '@/lib/api-helpers'
+import { generateStudentListPDF, generateGradesPDF, generateFeeReportPDF, downloadPDF } from '@/lib/pdf-utils'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { HODPageHeader } from '@/components/hod/page-header'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -90,14 +91,124 @@ export default function HODReportsPage() {
     }
   }
 
-  const handleGenerateReport = (reportType: string) => {
+  const handleGenerateReport = async (reportType: string) => {
     setGenerating(reportType)
-    
-    // Simulate report generation
-    setTimeout(() => {
-      alert(`${reportType} report generated successfully!`)
+    const headers = await getAuthHeaders(firebaseUser)
+
+    try {
+      switch (reportType) {
+        case 'Student List': {
+          const res = await fetch('/api/hod/students', { headers })
+          const students = await res.json()
+          if (!students.length) {
+            alert('No students found')
+            break
+          }
+          const formatted = students.map((s: any) => ({
+            id: s.id,
+            name: s.fullName,
+            email: s.email,
+            rollNumber: s.studentId || '-',
+            department: s.department?.name || user?.department?.name,
+            batch: s.enrollments?.[0]?.batch?.name || '-'
+          }))
+          const doc = await generateStudentListPDF(formatted, 'Student List Report')
+          await downloadPDF(doc, 'student_list_report')
+          break
+        }
+        case 'Faculty List': {
+          const res = await fetch('/api/hod/faculty', { headers })
+          const faculty = await res.json()
+          if (!faculty.length) {
+            alert('No faculty found')
+            break
+          }
+          const formatted = faculty.map((f: any) => ({
+            id: f.id,
+            name: f.fullName,
+            email: f.email,
+            department: f.department?.name
+          }))
+          const doc = await generateStudentListPDF(formatted, 'Faculty List Report')
+          await downloadPDF(doc, 'faculty_list_report')
+          break
+        }
+        case 'Subject List': {
+          const res = await fetch('/api/admin/subjects', { headers })
+          const subjects = await res.json()
+          if (!subjects.length) {
+            alert('No subjects found')
+            break
+          }
+          const formatted = subjects.map((s: any) => ({
+            id: s.id,
+            name: s.name,
+            code: s.code,
+            department: s.department?.name,
+            batch: s.batch?.name
+          }))
+          const doc = await generateStudentListPDF(formatted, 'Subject List Report')
+          await downloadPDF(doc, 'subject_list_report')
+          break
+        }
+        case 'Attendance Summary': {
+          const res = await fetch('/api/hod/attendance', { headers })
+          const attendance = await res.json()
+          const attendanceData = (attendance || []).map((a: any) => ({
+            studentName: a.student?.fullName || 'N/A',
+            studentRoll: a.student?.rollNumber,
+            subject: a.subject?.name || 'N/A',
+            totalClasses: a.totalClasses || 0,
+            present: a.present || 0,
+            absent: a.absent || 0,
+            percentage: a.percentage || 0
+          }))
+          const doc = await generateStudentListPDF(attendanceData, 'Attendance Report')
+          await downloadPDF(doc, 'attendance_report')
+          break
+        }
+        case 'Fee Collection Report': {
+          const res = await fetch('/api/admin/fees', { headers })
+          const fees = await res.json()
+          if (!fees.length) {
+            alert('No fee records found')
+            break
+          }
+          const formatted = fees.map((f: any) => ({
+            id: f.id,
+            studentName: f.student?.fullName || 'N/A',
+            studentRoll: f.student?.rollNumber,
+            amount: f.amount || 0,
+            status: f.status || 'PENDING',
+            dueDate: f.dueDate,
+            paidDate: f.paidDate
+          }))
+          const doc = await generateFeeReportPDF(formatted, 'Fee Collection Report')
+          await downloadPDF(doc, 'fee_collection_report')
+          break
+        }
+        case 'Department Performance': {
+          const res = await fetch('/api/hod/stats', { headers })
+          const data = await res.json()
+          const performanceData = [
+            { name: 'Total Students', email: data.totalStudents?.toString() || '0', rollNumber: '-', department: user?.department?.name, batch: '-' },
+            { name: 'Total Faculty', email: data.totalFaculty?.toString() || '0', rollNumber: '-', department: user?.department?.name, batch: '-' },
+            { name: 'Total Subjects', email: data.totalSubjects?.toString() || '0', rollNumber: '-', department: user?.department?.name, batch: '-' },
+            { name: 'Total Batches', email: data.totalBatches?.toString() || '0', rollNumber: '-', department: user?.department?.name, batch: '-' },
+          ]
+          const doc = await generateStudentListPDF(performanceData, 'Department Performance Report')
+          await downloadPDF(doc, 'department_performance_report')
+          break
+        }
+        default:
+          alert('Report type not implemented yet')
+      }
+    } catch (error) {
+      console.error('Error generating report:', error)
+      alert('Failed to generate report')
+    } finally {
       setGenerating(null)
-    }, 1500)
+    }
   }
 
   const reports = [
