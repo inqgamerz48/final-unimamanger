@@ -29,13 +29,13 @@ export interface FeeRecord {
 }
 
 async function getPdfLibs() {
-  const jsPDFModule = await import('jspdf')
-  const jsPDF = jsPDFModule.default
-  return { jsPDF }
+  const jsPDF = (await import('jspdf')).default
+  const autoTable = (await import('jspdf-autotable')).default
+  return { jsPDF, autoTable }
 }
 
 export async function generateStudentListPDF(students: StudentRecord[], title: string = 'Student List') {
-  const { jsPDF } = await getPdfLibs()
+  const { jsPDF, autoTable } = await getPdfLibs()
   const doc = new jsPDF()
 
   doc.setFontSize(18)
@@ -57,19 +57,19 @@ export async function generateStudentListPDF(students: StudentRecord[], title: s
     s.batch || '-'
   ])
 
-    ; (doc as any).autoTable({
-      head: [['Name', 'Email', 'Roll No', 'Department', 'Batch']],
-      body: tableData,
-      startY: 35,
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [76, 175, 80] }
-    })
+  autoTable(doc, {
+    head: [['Name', 'Email', 'Roll No', 'Department', 'Batch']],
+    body: tableData,
+    startY: 35,
+    styles: { fontSize: 9 },
+    headStyles: { fillColor: [76, 175, 80] }
+  })
 
   return doc
 }
 
 export async function generateGradesPDF(grades: GradeRecord[], title: string = 'Grades Report') {
-  const { jsPDF } = await getPdfLibs()
+  const { jsPDF, autoTable } = await getPdfLibs()
   const doc = new jsPDF()
 
   doc.setFontSize(18)
@@ -92,19 +92,19 @@ export async function generateGradesPDF(grades: GradeRecord[], title: string = '
     g.semester || '-'
   ])
 
-    ; (doc as any).autoTable({
-      head: [['Student', 'Roll No', 'Subject', 'Grade', 'Marks', 'Semester']],
-      body: tableData,
-      startY: 35,
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [33, 150, 243] }
-    })
+  autoTable(doc, {
+    head: [['Student', 'Roll No', 'Subject', 'Grade', 'Marks', 'Semester']],
+    body: tableData,
+    startY: 35,
+    styles: { fontSize: 9 },
+    headStyles: { fillColor: [33, 150, 243] }
+  })
 
   return doc
 }
 
 export async function generateFeeReportPDF(fees: FeeRecord[], title: string = 'Fee Report') {
-  const { jsPDF } = await getPdfLibs()
+  const { jsPDF, autoTable } = await getPdfLibs()
   const doc = new jsPDF()
 
   doc.setFontSize(18)
@@ -127,13 +127,13 @@ export async function generateFeeReportPDF(fees: FeeRecord[], title: string = 'F
     f.paidDate || '-'
   ])
 
-    ; (doc as any).autoTable({
-      head: [['Student', 'Roll No', 'Amount', 'Status', 'Due Date', 'Paid Date']],
-      body: tableData,
-      startY: 35,
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [255, 152, 0] }
-    })
+  autoTable(doc, {
+    head: [['Student', 'Roll No', 'Amount', 'Status', 'Due Date', 'Paid Date']],
+    body: tableData,
+    startY: 35,
+    styles: { fontSize: 9 },
+    headStyles: { fillColor: [255, 152, 0] }
+  })
 
   return doc
 }
@@ -147,7 +147,7 @@ export async function generateAttendancePDF(
   title: string = 'Attendance Report',
   dateRange?: string
 ) {
-  const { jsPDF } = await getPdfLibs()
+  const { jsPDF, autoTable } = await getPdfLibs()
   const doc = new jsPDF()
 
   doc.setFontSize(18)
@@ -177,13 +177,13 @@ export async function generateAttendancePDF(
     `${r.percentage?.toFixed(1) || 0}%`
   ])
 
-    ; (doc as any).autoTable({
-      head: [['Student', 'Roll No', 'Subject', 'Total', 'Present', 'Absent', 'Percentage']],
-      body: tableData,
-      startY: yPos + 6,
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [156, 39, 176] }
-    })
+  autoTable(doc, {
+    head: [['Student', 'Roll No', 'Subject', 'Total', 'Present', 'Absent', 'Percentage']],
+    body: tableData,
+    startY: yPos + 6,
+    styles: { fontSize: 9 },
+    headStyles: { fillColor: [156, 39, 176] }
+  })
 
   return doc
 }

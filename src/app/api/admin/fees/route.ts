@@ -10,13 +10,13 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     // Verify admin role using Firebase token
-    const authResult = await verifyRole(request, ['PRINCIPAL'])
+    const authResult = await verifyRole(request, ['PRINCIPAL', 'HOD'])
     if (!authResult) {
       return NextResponse.json({ error: 'Unauthorized - Admin access required' }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
-    
+
     // Pagination
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '50')
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    
+
     // Validate input
     const validationResult = createFeeSchema.safeParse(body)
     if (!validationResult.success) {
