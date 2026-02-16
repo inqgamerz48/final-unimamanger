@@ -82,7 +82,7 @@ export default function AdminBatches() {
   }
 
   useEffect(() => {
-    if (user) {
+    if (user && (user.role === 'PRINCIPAL' || user.role === 'HOD')) {
       fetchData()
     }
   }, [user, firebaseUser])

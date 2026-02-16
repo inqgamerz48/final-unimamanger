@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, BookOpen, Trash2, User } from 'lucide-react'
+import { Plus, BookOpen, Trash2, User, Edit2 } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 
 interface Subject {
   id: string
@@ -36,6 +37,12 @@ interface Faculty {
   fullName: string
 }
 
+interface SubjectWithIds extends Subject {
+  departmentId: string
+  batchId: string
+  facultyId: string | null
+}
+
 export default function AdminSubjects() {
   const { user, firebaseUser, loading } = useAuth()
   const router = useRouter()
@@ -45,19 +52,24 @@ export default function AdminSubjects() {
   const [faculty, setFaculty] = useState<Faculty[]>([])
   const [loadingData, setLoadingData] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [showEditDialog, setShowEditDialog] = useState(false)
+  const [editingSubject, setEditingSubject] = useState<SubjectWithIds | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     name: '', code: '', departmentId: '', batchId: '', facultyId: ''
   })
+  const [editFormData, setEditFormData] = useState({
+    name: '', code: '', batchId: '', facultyId: ''
+  })
 
   useEffect(() => {
-    if (!loading && user && user.role !== 'PRINCIPAL') {
+    if (!loading && user && user.role !== 'PRINCIPAL' && user.role !== 'HOD') {
       router.push('/')
     }
   }, [user, loading, router])
 
   useEffect(() => {
-    if (user?.role === 'PRINCIPAL') {
+    if (user?.role === 'PRINCIPAL' || user?.role === 'HOD') {
       fetchData()
     }
   }, [user])
@@ -115,7 +127,40 @@ export default function AdminSubjects() {
     }
   }
 
-  if (loading || user?.role !== 'PRINCIPAL') {
+  const handleEdit = (subject: any) => {
+    setEditingSubject(subject)
+    setEditFormData({
+      name: subject.name,
+      code: subject.code,
+      batchId: subject.batchId,
+      facultyId: subject.facultyId || ''
+    })
+    setShowEditDialog(true)
+  }
+
+  const handleUpdate = async () => {
+    if (!editingSubject) return
+    setSubmitting(true)
+    try {
+      const headers = await getAuthHeaders(firebaseUser)
+      const res = await fetch(`/api/admin/subjects/${editingSubject.id}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ ...editFormData, facultyId: editFormData.facultyId || null }),
+      })
+      if (res.ok) {
+        setShowEditDialog(false)
+        setEditingSubject(null)
+        fetchData()
+      }
+    } catch (error) {
+      console.error('Error updating subject:', error)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (loading || (user?.role !== 'PRINCIPAL' && user?.role !== 'HOD')) {
     return null
   }
 
@@ -213,7 +258,10 @@ export default function AdminSubjects() {
                         <td className="py-3 px-4 text-white/70">{s.batch.name}</td>
                         <td className="py-3 px-4 text-white/70">{s.faculty?.fullName || '-'}</td>
                         <td className="py-3 px-4">
-                          <Button size="sm" variant="ghost" onClick={() => handleDelete(s.id)} className="text-red-500 hover:text-red-400"><Trash2 className="w-4 h-4" /></Button>
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="ghost" onClick={() => handleEdit(s)} className="text-white hover:text-white/80"><Edit2 className="w-4 h-4" /></Button>
+                            <Button size="sm" variant="ghost" onClick={() => handleDelete(s.id)} className="text-red-500 hover:text-red-400"><Trash2 className="w-4 h-4" /></Button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -223,6 +271,57 @@ export default function AdminSubjects() {
             )}
           </CardContent>
         </Card>
+
+        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+          <DialogContent className="bg-charcoal border-white/10 text-white">
+            <DialogHeader>
+              <DialogTitle>Edit Subject</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Subject Name</Label>
+                <Input
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  className="bg-white/5 border-white/10"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Code</Label>
+                <Input
+                  value={editFormData.code}
+                  onChange={(e) => setEditFormData({ ...editFormData, code: e.target.value.toUpperCase() })}
+                  className="bg-white/5 border-white/10"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Batch</Label>
+                <Select value={editFormData.batchId} onValueChange={(v) => setEditFormData({ ...editFormData, batchId: v })}>
+                  <SelectTrigger className="bg-white/5 border-white/10"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {batches.map((b) => (<SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Assigned Faculty</Label>
+                <Select value={editFormData.facultyId || 'none'} onValueChange={(v) => setEditFormData({ ...editFormData, facultyId: v === 'none' ? '' : v })}>
+                  <SelectTrigger className="bg-white/5 border-white/10"><SelectValue placeholder="Select faculty" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Unassigned</SelectItem>
+                    {faculty.map((f) => (<SelectItem key={f.id} value={f.id}>{f.fullName}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex justify-end gap-2 mt-4">
+                <Button variant="ghost" onClick={() => setShowEditDialog(false)}>Cancel</Button>
+                <Button onClick={handleUpdate} disabled={submitting} className="bg-neon-lime text-obsidian">Save Changes</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   )

@@ -6,12 +6,18 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    const authResult = await verifyRole(request, ['PRINCIPAL'])
+    const authResult = await verifyRole(request, ['PRINCIPAL', 'HOD'])
     if (!authResult) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const whereClause: any = {}
+    if (authResult.prismaUser.role === 'HOD' && authResult.prismaUser.departmentId) {
+      whereClause.departmentId = authResult.prismaUser.departmentId
+    }
     
     const subjects = await prisma.subject.findMany({
+      where: whereClause,
       include: {
         department: { select: { name: true } },
         batch: { select: { name: true } },
@@ -28,13 +34,19 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const authResult = await verifyRole(request, ['PRINCIPAL'])
+    const authResult = await verifyRole(request, ['PRINCIPAL', 'HOD'])
     if (!authResult) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    
+
     const body = await request.json()
     const { name, code, departmentId, batchId, facultyId } = body
+    
+    if (authResult.prismaUser.role === 'HOD' && authResult.prismaUser.departmentId) {
+      if (departmentId && departmentId !== authResult.prismaUser.departmentId) {
+        return NextResponse.json({ error: 'HOD can only create subjects for their department' }, { status: 403 })
+      }
+    }
     
     const subject = await prisma.subject.create({
       data: { name, code, departmentId, batchId, facultyId }

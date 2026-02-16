@@ -6,11 +6,18 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    const authResult = await verifyRole(request, ['PRINCIPAL'])
+    const authResult = await verifyRole(request, ['PRINCIPAL', 'HOD'])
     if (!authResult) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const whereClause: any = {}
+    if (authResult.prismaUser.role === 'HOD' && authResult.prismaUser.departmentId) {
+      whereClause.departmentId = authResult.prismaUser.departmentId
+    }
+
     const batches = await prisma.batch.findMany({
+      where: whereClause,
       include: {
         department: { select: { name: true, code: true } },
         _count: { select: { enrollments: true } }
@@ -25,12 +32,19 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const authResult = await verifyRole(request, ['PRINCIPAL'])
+    const authResult = await verifyRole(request, ['PRINCIPAL', 'HOD'])
     if (!authResult) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     const body = await request.json()
-    const { name, year, semester, departmentId } = body
+    let { name, year, semester, departmentId } = body
+
+    if (authResult.prismaUser.role === 'HOD' && authResult.prismaUser.departmentId) {
+      if (departmentId && departmentId !== authResult.prismaUser.departmentId) {
+        return NextResponse.json({ error: 'HOD can only create batches for their department' }, { status: 403 })
+      }
+      departmentId = authResult.prismaUser.departmentId
+    }
 
     if (!name || !departmentId || !year || !semester) {
       return NextResponse.json({ error: 'Name, Department, Year and Semester are required' }, { status: 400 })

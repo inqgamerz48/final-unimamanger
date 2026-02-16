@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const authResult = await verifyRole(request, ['PRINCIPAL'])
+    const authResult = await verifyRole(request, ['PRINCIPAL', 'HOD'])
     if (!authResult) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -32,7 +32,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const authResult = await verifyRole(request, ['PRINCIPAL'])
+    const authResult = await verifyRole(request, ['PRINCIPAL', 'HOD'])
     if (!authResult) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
