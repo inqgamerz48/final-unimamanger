@@ -130,6 +130,8 @@ model Batch {
   enrollments   Enrollment[]
   notices       Notice[]
   subjects      Subject[]
+  attendances   Attendance[]
+  timetableUrl  String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -146,6 +148,9 @@ model Subject {
   batch         Batch     @relation(fields: [batchId], references: [id])
   facultyId     String?
   faculty       User?     @relation(fields: [facultyId], references: [id])
+  credits       Int       @default(3)
+  type          String    @default("CORE") // CORE, ELECTIVE, LAB
+  electiveGroupId String?
   assignments   Assignment[]
   attendances   Attendance[]
   grades        Grade[]
@@ -204,18 +209,22 @@ model Submission {
 
 model Attendance {
   id          String            @id @default(cuid())
-  studentId    String
+  studentId   String
   student     User              @relation(fields: [studentId], references: [id])
   subjectId   String
   subject     Subject           @relation(fields: [subjectId], references: [id])
+  batchId     String
+  batch       Batch             @relation(fields: [batchId], references: [id])
   date        DateTime
-  status      AttendanceStatus @default(PRESENT)
+  status      AttendanceStatus  @default(PRESENT)
   markedById  String?
-  markedBy    User?            @relation("MarkedBy", fields: [markedById], references: [id])
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  markedBy    User?             @relation("MarkedBy", fields: [markedById], references: [id])
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 
   @@unique([studentId, subjectId, date])
+  @@index([batchId])
+  @@index([date])
 }
 
 model Grade {

@@ -1,259 +1,349 @@
-"use client"
+'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/context/auth-context'
-import { getAuthHeaders } from '@/lib/api-helpers'
-import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { CheckCircle, XCircle, Clock, Users, Calendar } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { toast } from 'react-hot-toast'
+import { Loader2, CheckCircle2, XCircle, Clock, AlertCircle, Save } from 'lucide-react'
 
-interface Student {
-  id: string
-  fullName: string
-  studentId: string | null
-}
-
+// Types based on our API responses
 interface Subject {
   id: string
   name: string
   code: string
+  batchId: string
   batch: {
     name: string
   }
 }
 
-interface AttendanceRecord {
-  studentId: string
-  status: string
+interface Student {
+  id: string
+  fullName: string
+  studentId: string | null
+  email: string
 }
 
-export default function FacultyAttendance() {
-  const { user, firebaseUser, loading } = useAuth()
+interface AttendanceRecord {
+  id: string
+  studentId: string
+  status: 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED'
+}
+
+export default function FacultyAttendancePage() {
   const router = useRouter()
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
+  // Data
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [students, setStudents] = useState<Student[]>([])
-  const [selectedSubject, setSelectedSubject] = useState<string>('')
+
+  // Selection State
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>('')
+  const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0])
+
+  // Attendance State: Map studentId -> status
   const [attendance, setAttendance] = useState<Record<string, string>>({})
-  const [loadingData, setLoadingData] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0])
 
+  // Derived state
+  const selectedSubject = subjects.find(s => s.id === selectedSubjectId)
+
+  // 1. Fetch Subjects on Mount
   useEffect(() => {
-    if (!loading && user && user.role !== 'FACULTY') {
-      router.push('/')
-    }
-  }, [user, loading, router])
+    fetch('/api/faculty/subjects')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setSubjects(data)
+        } else {
+          toast.error('Failed to load subjects')
+        }
+      })
+      .catch(err => toast.error('Error loading subjects'))
+      .finally(() => setLoading(false))
+  }, [])
 
+  // 2. Fetch Students & Existing Attendance when Subject/Date changes
   useEffect(() => {
-    if (user?.role === 'FACULTY') {
-      fetchSubjects()
-    }
-  }, [user])
+    if (!selectedSubjectId || !date) return
 
-  useEffect(() => {
-    if (selectedSubject) {
-      fetchStudents()
-    }
-  }, [selectedSubject])
+    const subject = subjects.find(s => s.id === selectedSubjectId)
+    if (!subject) return
 
-  const fetchSubjects = async () => {
-    try {
-      const headers = await getAuthHeaders(firebaseUser)
-      const res = await fetch('/api/faculty/subjects', { headers })
-      if (res.ok) {
-        const data = await res.json()
-        setSubjects(data)
+    const fetchData = async () => {
+      setLoading(true)
+      try {
+        // Fetch Students for the batch
+        const studentsRes = await fetch(`/api/faculty/students?batchId=${subject.batchId}`)
+        const studentsData = await studentsRes.json()
+
+        if (studentsRes.ok) {
+          setStudents(studentsData)
+
+          // Initialize attendance with 'PRESENT' for all new students
+          const initialAttendance: Record<string, string> = {}
+          studentsData.forEach((s: Student) => {
+            initialAttendance[s.id] = 'PRESENT'
+          })
+          setAttendance(initialAttendance)
+        } else {
+          toast.error('Failed to load students')
+          return
+        }
+
+        // Fetch Existing Attendance
+        const attendanceRes = await fetch(
+          `/api/faculty/attendance?batchId=${subject.batchId}&subjectId=${subject.id}&date=${date}`
+        )
+        const attendanceData = await attendanceRes.json()
+
+        if (attendanceRes.ok && Array.isArray(attendanceData)) {
+          // Update state with existing records
+          const existing: Record<string, string> = {}
+          attendanceData.forEach((record: any) => {
+            existing[record.studentId] = record.status
+          })
+          // Merge: existing overrides initial 'PRESENT'
+          setAttendance(prev => ({ ...prev, ...existing }))
+        }
+
+      } catch (error) {
+        console.error(error)
+        toast.error('Error fetching data')
+      } finally {
+        setLoading(false)
       }
-    } catch (error) {
-      console.error('Error fetching subjects:', error)
-    } finally {
-      setLoadingData(false)
     }
-  }
 
-  const fetchStudents = async () => {
-    try {
-      const headers = await getAuthHeaders(firebaseUser)
-      const res = await fetch(`/api/faculty/subjects/${selectedSubject}/students`, { headers })
-      if (res.ok) {
-        const data = await res.json()
-        setStudents(data)
-        setAttendance({})
-      }
-    } catch (error) {
-      console.error('Error fetching students:', error)
-    }
-  }
+    fetchData()
+  }, [selectedSubjectId, date, subjects])
 
+  // Handlers
   const handleStatusChange = (studentId: string, status: string) => {
-    setAttendance(prev => ({ ...prev, [studentId]: status }))
+    setAttendance(prev => ({
+      ...prev,
+      [studentId]: status
+    }))
   }
 
   const handleMarkAll = (status: string) => {
     const newAttendance: Record<string, string> = {}
-    students.forEach(s => { newAttendance[s.id] = status })
+    students.forEach(s => {
+      newAttendance[s.id] = status
+    })
     setAttendance(newAttendance)
   }
 
-  const handleSave = async () => {
-    if (!selectedSubject || Object.keys(attendance).length === 0) return
+  const handleSubmit = async () => {
+    if (!selectedSubject) return
 
     setSaving(true)
     try {
-      const headers = await getAuthHeaders(firebaseUser)
+      const records = Object.entries(attendance).map(([studentId, status]) => ({
+        studentId,
+        status
+      }))
+
       const res = await fetch('/api/faculty/attendance', {
         method: 'POST',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          subjectId: selectedSubject,
-          date: new Date(date),
-          records: attendance,
-        }),
+          batchId: selectedSubject.batchId,
+          subjectId: selectedSubject.id,
+          date,
+          records
+        })
       })
+
       if (res.ok) {
-        alert('Attendance marked successfully!')
-        setAttendance({})
+        toast.success('Attendance saved successfully')
       } else {
-        alert('Failed to save attendance')
+        const error = await res.json()
+        toast.error(error.error || 'Failed to save attendance')
       }
     } catch (error) {
-      console.error('Error saving attendance:', error)
+      toast.error('Error saving attendance')
     } finally {
       setSaving(false)
     }
   }
 
-  if (loading || user?.role !== 'FACULTY') {
-    return null
+  // Helper for Status Badge/Button
+  const StatusButton = ({
+    studentId,
+    status,
+    currentStatus,
+    icon: Icon,
+    label,
+    colorClass
+  }: any) => {
+    const isSelected = currentStatus === status
+    return (
+      <button
+        onClick={() => handleStatusChange(studentId, status)}
+        className={`
+          flex items-center justify-center p-2 rounded-md transition-all
+          ${isSelected
+            ? `${colorClass} text-white shadow-md`
+            : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
+          }
+        `}
+        title={label}
+      >
+        <Icon className="w-4 h-4" />
+      </button>
+    )
   }
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white">Mark Attendance</h1>
-          <p className="text-white/50 mt-1">Select subject and mark student attendance</p>
+          <h1 className="text-3xl font-bold tracking-tight">Mark Attendance</h1>
+          <p className="text-muted-foreground">Select a subject and date to mark student attendance.</p>
         </div>
+        <div className="flex items-center gap-2">
+          {selectedSubjectId && (
+            <Button onClick={handleSubmit} disabled={saving || loading} className="bg-neon-lime text-obsidian hover:bg-neon-lime/90">
+              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+              Save Attendance
+            </Button>
+          )}
+        </div>
+      </div>
 
-        {/* Controls */}
-        <Card className="bg-charcoal border-white/5">
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="text-white/70 text-sm mb-2 block">Date</label>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full h-10 px-3 bg-white/5 border border-white/10 rounded-lg text-white"
-                />
-              </div>
-              <div>
-                <label className="text-white/70 text-sm mb-2 block">Subject</label>
-                <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                  <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                    <SelectValue placeholder="Select subject" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {subjects.map((subject) => (
-                      <SelectItem key={subject.id} value={subject.id}>
-                        {subject.name} ({subject.code}) - {subject.batch.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-white/70 text-sm mb-2 block">Quick Actions</label>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleMarkAll('PRESENT')}
-                    className="border-white/10 text-white hover:bg-white/5"
-                  >
-                    All Present
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleMarkAll('ABSENT')}
-                    className="border-white/10 text-white hover:bg-white/5"
-                  >
-                    All Absent
-                  </Button>
+      {/* Filters Card */}
+      <Card className="bg-card">
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Subject</label>
+              <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Subject" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subjects.map(subject => (
+                    <SelectItem key={subject.id} value={subject.id}>
+                      {subject.name} ({subject.code})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Date</label>
+              <Input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
+              />
+            </div>
+
+            {selectedSubject && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Batch</label>
+                <div className="p-2 border rounded-md bg-muted/50 text-sm">
+                  {selectedSubject.batch.name}
                 </div>
               </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Student List */}
+      {selectedSubjectId ? (
+        <Card className="bg-card">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Student List ({students.length})</CardTitle>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => handleMarkAll('PRESENT')}>Mark All Present</Button>
+              <Button variant="outline" size="sm" onClick={() => handleMarkAll('ABSENT')}>Mark All Absent</Button>
             </div>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex justify-center p-8">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : students.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No students found in this batch.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {/* Header */}
+                <div className="grid grid-cols-12 gap-4 px-4 py-2 text-sm font-medium text-muted-foreground border-b">
+                  <div className="col-span-5">Student Details</div>
+                  <div className="col-span-7 flex justify-between px-2">
+                    <span>Present</span>
+                    <span>Absent</span>
+                    <span>Late</span>
+                    <span>Excused</span>
+                  </div>
+                </div>
+
+                {/* Rows */}
+                {students.map(student => (
+                  <div key={student.id} className="grid grid-cols-12 gap-4 items-center p-3 rounded-lg hover:bg-muted/50 transition-colors border border-transparent hover:border-border">
+                    <div className="col-span-5">
+                      <p className="font-medium">{student.fullName}</p>
+                      <p className="text-xs text-muted-foreground">{student.studentId || 'No ID'}</p>
+                    </div>
+                    <div className="col-span-7 grid grid-cols-4 gap-2">
+                      <StatusButton
+                        studentId={student.id}
+                        status="PRESENT"
+                        currentStatus={attendance[student.id]}
+                        icon={CheckCircle2}
+                        label="Present"
+                        colorClass="bg-green-500 hover:bg-green-600"
+                      />
+                      <StatusButton
+                        studentId={student.id}
+                        status="ABSENT"
+                        currentStatus={attendance[student.id]}
+                        icon={XCircle}
+                        label="Absent"
+                        colorClass="bg-red-500 hover:bg-red-600"
+                      />
+                      <StatusButton
+                        studentId={student.id}
+                        status="LATE"
+                        currentStatus={attendance[student.id]}
+                        icon={Clock}
+                        label="Late"
+                        colorClass="bg-yellow-500 hover:bg-yellow-600"
+                      />
+                      <StatusButton
+                        studentId={student.id}
+                        status="EXCUSED"
+                        currentStatus={attendance[student.id]}
+                        icon={AlertCircle}
+                        label="Excused"
+                        colorClass="bg-blue-500 hover:bg-blue-600"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
-
-        {/* Student List */}
-        {selectedSubject && (
-          <Card className="bg-charcoal border-white/5">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center justify-between">
-                <span>Students ({students.length})</span>
-                <Button
-                  onClick={handleSave}
-                  disabled={saving || Object.keys(attendance).length === 0}
-                  className="bg-neon-lime text-obsidian hover:bg-neon-lime/90"
-                >
-                  {saving ? 'Saving...' : 'Save Attendance'}
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {students.length === 0 ? (
-                <div className="text-center py-8 text-white/50">
-                  No students enrolled in this subject
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {students.map((student) => (
-                    <div key={student.id} className="flex items-center justify-between p-3 rounded-lg bg-white/5">
-                      <div>
-                        <p className="text-white font-medium">{student.fullName}</p>
-                        <p className="text-white/50 text-sm">{student.studentId || 'No ID'}</p>
-                      </div>
-                      <div className="flex gap-1">
-                        <Button
-                          size="sm"
-                          variant={attendance[student.id] === 'PRESENT' ? 'default' : 'outline'}
-                          onClick={() => handleStatusChange(student.id, 'PRESENT')}
-                          className={attendance[student.id] === 'PRESENT' ? 'bg-green-500' : 'border-white/10 text-white hover:bg-white/5'}
-                        >
-                          <CheckCircle className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={attendance[student.id] === 'ABSENT' ? 'default' : 'outline'}
-                          onClick={() => handleStatusChange(student.id, 'ABSENT')}
-                          className={attendance[student.id] === 'ABSENT' ? 'bg-red-500' : 'border-white/10 text-white hover:bg-white/5'}
-                        >
-                          <XCircle className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={attendance[student.id] === 'LATE' ? 'default' : 'outline'}
-                          onClick={() => handleStatusChange(student.id, 'LATE')}
-                          className={attendance[student.id] === 'LATE' ? 'bg-yellow-500' : 'border-white/10 text-white hover:bg-white/5'}
-                        >
-                          <Clock className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-      </div>
-    </DashboardLayout>
+      ) : (
+        <div className="flex flex-col items-center justify-center p-12 bg-muted/10 rounded-lg border border-dashed">
+          <Clock className="w-12 h-12 text-muted-foreground mb-4" />
+          <p className="text-lg font-medium text-muted-foreground">Select a subject to start marking attendance</p>
+        </div>
+      )}
+    </div>
   )
 }

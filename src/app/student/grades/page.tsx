@@ -1,182 +1,153 @@
-"use client"
+'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAuth } from '@/context/auth-context'
-import { getAuthHeaders } from '@/lib/api-helpers'
+import { useState, useEffect } from 'react'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Clipboard, TrendingUp, Award } from 'lucide-react'
+import { Loader2, BookOpen, Calculator } from 'lucide-react'
 
 interface Grade {
   id: string
+  examType: 'MST1' | 'MST2' | 'FINAL'
   marks: number
   totalMarks: number
-  examType: string
   subject: {
     name: string
     code: string
+    credits: number
+    type: string
   }
 }
 
-export default function StudentGrades() {
-  const { user, firebaseUser, loading } = useAuth()
-  const router = useRouter()
-  const [grades, setGrades] = useState<Grade[]>([])
-  const [loadingData, setLoadingData] = useState(true)
+interface SubjectGrades {
+  subjectName: string
+  subjectCode: string
+  credits: number
+  type: string
+  grades: {
+    examType: string
+    marks: number
+    totalMarks: number
+  }[]
+}
+
+export default function StudentGradesPage() {
+  const [loading, setLoading] = useState(true)
+  const [groupedGrades, setGroupedGrades] = useState<SubjectGrades[]>([])
 
   useEffect(() => {
-    if (!loading && user && user.role !== 'STUDENT') {
-      router.push('/')
+    fetch('/api/student/grades')
+      .then(res => res.json())
+      .then((data: Grade[]) => {
+        // Group by subject
+        const groups: Record<string, SubjectGrades> = {}
+
+        data.forEach(g => {
+          const key = g.subject.code
+          if (!groups[key]) {
+            groups[key] = {
+              subjectName: g.subject.name,
+              subjectCode: g.subject.code,
+              credits: g.subject.credits,
+              type: g.subject.type,
+              grades: []
+            }
+          }
+          groups[key].grades.push({
+            examType: g.examType,
+            marks: g.marks,
+            totalMarks: g.totalMarks
+          })
+        })
+
+        setGroupedGrades(Object.values(groups))
+        setLoading(false)
+      })
+      .catch(err => {
+        console.error(err)
+        setLoading(false)
+      })
+  }, [])
+
+  const getExamBadge = (type: string) => {
+    switch (type) {
+      case 'MST1': return <Badge variant="secondary">MST 1</Badge>
+      case 'MST2': return <Badge variant="secondary">MST 2</Badge>
+      case 'FINAL': return <Badge className="bg-neon-lime text-obsidian">Final</Badge>
+      default: return <Badge variant="outline">{type}</Badge>
     }
-  }, [user, loading, router])
-
-  useEffect(() => {
-    if (user?.role === 'STUDENT') {
-      fetchGrades()
-    }
-  }, [user])
-
-  const fetchGrades = async () => {
-    try {
-      const headers = await getAuthHeaders(firebaseUser)
-      const res = await fetch('/api/student/grades', { headers })
-      if (res.ok) {
-        const data = await res.json()
-        setGrades(data)
-      }
-    } catch (error) {
-      console.error('Error fetching grades:', error)
-    } finally {
-      setLoadingData(false)
-    }
   }
-
-  const getGradeColor = (percentage: number) => {
-    if (percentage >= 90) return 'text-green-500'
-    if (percentage >= 80) return 'text-blue-500'
-    if (percentage >= 70) return 'text-yellow-500'
-    if (percentage >= 60) return 'text-orange-500'
-    return 'text-red-500'
-  }
-
-  const getGrade = (percentage: number) => {
-    if (percentage >= 90) return 'A+'
-    if (percentage >= 80) return 'A'
-    if (percentage >= 70) return 'B+'
-    if (percentage >= 60) return 'B'
-    if (percentage >= 50) return 'C'
-    return 'F'
-  }
-
-  if (loading || user?.role !== 'STUDENT') {
-    return null
-  }
-
-  const allGrades = grades.flatMap(g => 
-    Array.from({ length: Math.ceil(g.totalMarks / 10) }, (_, i) => ({
-      ...g,
-      position: i + 1
-    }))
-  )
-
-  const overallPercentage = grades.length > 0
-    ? Math.round(grades.reduce((sum, g) => sum + (g.marks / g.totalMarks * 100), 0) / grades.length)
-    : 0
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-white">My Grades</h1>
-          <p className="text-white/50 mt-1">View your academic performance</p>
+          <p className="text-white/50 mt-1">Academic performance and assessment results</p>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="bg-charcoal border-white/5">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-white/50">Overall Percentage</p>
-                  <p className={`text-3xl font-bold mt-1 ${getGradeColor(overallPercentage)}`}>{overallPercentage}%</p>
-                </div>
-                <TrendingUp className="h-10 w-10 text-neon-lime" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-charcoal border-white/5">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-white/50">Current Grade</p>
-                  <p className={`text-3xl font-bold mt-1 ${getGradeColor(overallPercentage)}`}>{getGrade(overallPercentage)}</p>
-                </div>
-                <Award className="h-10 w-10 text-yellow-500" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-charcoal border-white/5">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-white/50">Exams Completed</p>
-                  <p className="text-3xl font-bold text-white mt-1">{grades.length}</p>
-                </div>
-                <Clipboard className="h-10 w-10 text-blue-500" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Grades Table */}
-        <Card className="bg-charcoal border-white/5">
-          <CardHeader>
-            <CardTitle className="text-white">Grade Details</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loadingData ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="w-8 h-8 border-2 border-neon-lime border-t-transparent rounded-full animate-spin" />
-              </div>
-            ) : grades.length === 0 ? (
-              <div className="text-center py-8 text-white/50">
-                No grades available yet
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-white/10">
-                      <th className="text-left py-3 px-4 text-white/70 font-medium">Subject</th>
-                      <th className="text-left py-3 px-4 text-white/70 font-medium">Code</th>
-                      <th className="text-left py-3 px-4 text-white/70 font-medium">Exam Type</th>
-                      <th className="text-left py-3 px-4 text-white/70 font-medium">Marks</th>
-                      <th className="text-left py-3 px-4 text-white/70 font-medium">Percentage</th>
-                      <th className="text-left py-3 px-4 text-white/70 font-medium">Grade</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {grades.map((grade) => {
-                      const percentage = Math.round((grade.marks / grade.totalMarks) * 100)
-                      return (
-                        <tr key={grade.id} className="border-b border-white/5 hover:bg-white/5">
-                          <td className="py-3 px-4 text-white">{grade.subject.name}</td>
-                          <td className="py-3 px-4 text-white/70">{grade.subject.code}</td>
-                          <td className="py-3 px-4 text-white">{grade.examType}</td>
-                          <td className="py-3 px-4 text-white font-medium">{grade.marks}/{grade.totalMarks}</td>
-                          <td className={`py-3 px-4 font-medium ${getGradeColor(percentage)}`}>{percentage}%</td>
-                          <td className={`py-3 px-4 font-bold ${getGradeColor(percentage)}`}>{getGrade(percentage)}</td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {loading ? (
+          <div className="flex justify-center p-12">
+            <Loader2 className="w-8 h-8 text-neon-lime animate-spin" />
+          </div>
+        ) : groupedGrades.length === 0 ? (
+          <div className="text-center py-12 border-2 border-dashed border-white/10 rounded-lg">
+            <BookOpen className="w-12 h-12 text-white/20 mx-auto mb-4" />
+            <h3 className="text-xl text-white font-medium">No grades available</h3>
+            <p className="text-white/50">Grades will appear here once faculty uploads them.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {groupedGrades.map(subject => (
+              <Card key={subject.subjectCode} className="bg-charcoal border-white/5 hover:border-neon-lime/30 transition-colors">
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="text-lg font-bold text-white">{subject.subjectName}</h3>
+                      <p className="text-neon-lime font-mono text-xs">{subject.subjectCode}</p>
+                    </div>
+                    <div className="text-right">
+                      <Badge variant="outline" className="border-white/20 text-white/70">
+                        {subject.credits} Credits
+                      </Badge>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3 mt-2">
+                    {subject.grades.length > 0 ? (
+                      <table className="w-full text-sm">
+                        <tbody className="divide-y divide-white/5">
+                          {subject.grades.map((g, i) => (
+                            <tr key={i}>
+                              <td className="py-2">{getExamBadge(g.examType)}</td>
+                              <td className="py-2 text-right">
+                                <span className="text-white font-bold">{g.marks}</span>
+                                <span className="text-white/40"> / {g.totalMarks}</span>
+                              </td>
+                            </tr>
+                          ))}
+                          {/* Calculate Total if needed, simplistic sum for now */}
+                          <tr className="border-t border-white/10">
+                            <td className="py-2 font-medium text-white/70">Total</td>
+                            <td className="py-2 text-right">
+                              <span className="text-neon-lime font-bold">
+                                {subject.grades.reduce((sum, g) => sum + g.marks, 0)}
+                              </span>
+                              <span className="text-white/40"> / {subject.grades.reduce((sum, g) => sum + g.totalMarks, 0)}</span>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    ) : (
+                      <p className="text-sm text-white/40 italic">No exams recorded yet.</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     </DashboardLayout>
   )

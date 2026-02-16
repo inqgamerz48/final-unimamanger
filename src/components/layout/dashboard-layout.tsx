@@ -43,7 +43,7 @@ const navigationByRole: Record<string, { name: string; href: string; icon: any }
     { name: 'Batches', href: '/hod/batches', icon: ClipboardList },
     { name: 'Faculty', href: '/hod/faculty', icon: GraduationCap },
     { name: 'Students', href: '/hod/students', icon: Users },
-    { name: 'Courses', href: '/hod/courses', icon: BookOpen },
+    { name: 'Courses', href: '/hod/subjects', icon: BookOpen },
     { name: 'Fees', href: '/hod/fees', icon: DollarSign },
     { name: 'Attendance', href: '/hod/attendance', icon: Calendar },
     { name: 'Assignments', href: '/hod/assignments', icon: FileText },
@@ -65,7 +65,7 @@ const navigationByRole: Record<string, { name: string; href: string; icon: any }
   STUDENT: [
     { name: 'Dashboard', href: '/student/dashboard', icon: LayoutDashboard },
     { name: 'My Batch', href: '/student/batch', icon: Users },
-    { name: 'My Courses', href: '/student/courses', icon: BookOpen },
+    { name: 'My Subjects', href: '/student/subjects', icon: BookOpen },
     { name: 'Attendance', href: '/student/attendance', icon: Calendar },
     { name: 'Assignments', href: '/student/assignments', icon: FileText },
     { name: 'Grades', href: '/student/grades', icon: ClipboardList },

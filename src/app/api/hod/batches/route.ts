@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     const authResult = await verifyRole(request, ['HOD'])
-    
+
     if (!authResult) {
       return NextResponse.json({ error: 'Forbidden - HOD access required' }, { status: 403 })
     }
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const authResult = await verifyRole(request, ['HOD'])
-    
+
     if (!authResult) {
       return NextResponse.json({ error: 'Forbidden - HOD access required' }, { status: 403 })
     }
@@ -96,5 +96,44 @@ export async function POST(request: NextRequest) {
       { error: error.message || 'Failed to create batch' },
       { status: 500 }
     )
+  }
+}
+
+// PUT - Update batch (e.g. Timetable URL)
+export async function PUT(request: NextRequest) {
+  try {
+    const authResult = await verifyRole(request, ['HOD'])
+    if (!authResult) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    if (!id) return NextResponse.json({ error: 'Batch ID required' }, { status: 400 })
+
+    const { prismaUser: user } = authResult
+    const departmentId = user.departmentId
+
+    // Verify batch belongs to HOD's department
+    const existingBatch = await prisma.batch.findUnique({ where: { id } })
+    if (!existingBatch || existingBatch.departmentId !== departmentId) {
+      return NextResponse.json({ error: 'Batch not found or unauthorized' }, { status: 404 })
+    }
+
+    const body = await request.json()
+    // Allowed updates
+    const { name, timetableUrl } = body
+
+    const updateData: any = {}
+    if (name) updateData.name = name
+    if (timetableUrl !== undefined) updateData.timetableUrl = timetableUrl
+
+    const updatedBatch = await prisma.batch.update({
+      where: { id },
+      data: updateData
+    })
+
+    return NextResponse.json(updatedBatch)
+  } catch (error) {
+    console.error('Update batch error:', error)
+    return NextResponse.json({ error: 'Failed to update batch' }, { status: 500 })
   }
 }

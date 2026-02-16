@@ -37,4 +37,5 @@ export const auth = {
   listUsers: (maxResults?: number, pageToken?: string) => initAuth().listUsers(maxResults, pageToken),
   updateUser: (uid: string, properties: object) => initAuth().updateUser(uid, properties),
   deleteUser: (uid: string) => initAuth().deleteUser(uid),
+  createUser: (properties: any) => initAuth().createUser(properties),
 } as unknown as Auth

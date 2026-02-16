@@ -7,28 +7,33 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     const authResult = await verifyRole(request, ['STUDENT'])
-    if (!authResult) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    if (!authResult) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { prismaUser: user } = authResult
 
     const grades = await prisma.grade.findMany({
-      where: { studentId: user.id },
+      where: {
+        studentId: user.id
+      },
       include: {
         subject: {
           select: {
             name: true,
             code: true,
+            credits: true,
+            type: true
           }
         }
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: {
+        subject: { code: 'asc' }
+      }
     })
 
     return NextResponse.json(grades)
-  } catch (error: any) {
-    console.error('Student grades error:', error)
+
+  } catch (error) {
+    console.error('Fetch student grades error:', error)
     return NextResponse.json({ error: 'Failed to fetch grades' }, { status: 500 })
   }
 }

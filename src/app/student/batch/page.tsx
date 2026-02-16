@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -6,13 +6,14 @@ import { useAuth } from '@/context/auth-context'
 import { getAuthHeaders } from '@/lib/api-helpers'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Calendar, Users, Building2 } from 'lucide-react'
+import { Calendar, Users, Building2, ExternalLink } from 'lucide-react'
 
 interface Batch {
     id: string
     name: string
     year: number
     semester: number
+    timetableUrl?: string | null
     department: { name: string }
 }
 
@@ -101,6 +102,28 @@ export default function StudentBatch() {
                                         <p className="text-white font-medium">{batch.department.name}</p>
                                     </div>
                                 </div>
+
+                                {batch.timetableUrl && (
+                                    <div className="flex items-center justify-between gap-3 p-4 bg-neon-lime/5 border border-neon-lime/20 rounded-lg col-span-full">
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-10 w-10 rounded-lg bg-neon-lime/20 flex items-center justify-center">
+                                                <Calendar className="h-5 w-5 text-neon-lime" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-neon-lime text-sm font-medium">Batch Timetable</h3>
+                                                <p className="text-white/50 text-xs">View your class schedule</p>
+                                            </div>
+                                        </div>
+                                        <a
+                                            href={batch.timetableUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="bg-neon-lime text-obsidian px-4 py-2 rounded-md text-sm font-medium hover:bg-neon-lime/90 transition-colors flex items-center gap-2"
+                                        >
+                                            View Timetable <ExternalLink className="w-4 h-4" />
+                                        </a>
+                                    </div>
+                                )}
                             </div>
                         </CardContent>
                     </Card>

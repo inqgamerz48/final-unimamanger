@@ -26,7 +26,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Calendar, MoreVertical, Pencil, Trash2, Users, GraduationCap } from 'lucide-react'
+import { Calendar, MoreVertical, Pencil, Trash2, Users, GraduationCap, Upload, Eye, FileText, Loader2 } from 'lucide-react'
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { storage } from '@/lib/firebase'
+import { toast } from 'react-hot-toast'
 
 interface Batch {
   id: string
@@ -34,6 +37,7 @@ interface Batch {
   year: number
   semester: number
   departmentId: string
+  timetableUrl?: string | null
   _count: { enrollments: number }
   createdAt: string
 }
@@ -41,20 +45,23 @@ interface Batch {
 export default function HODBatchesPage() {
   const { user, firebaseUser, loading } = useAuth()
   const router = useRouter()
-  
+
   const [batches, setBatches] = useState<Batch[]>([])
   const [loadingData, setLoadingData] = useState(true)
-  
+
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
+  const [showUploadDialog, setShowUploadDialog] = useState(false)
+
   const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null)
-  
+  const [uploading, setUploading] = useState(false)
+
   const [formData, setFormData] = useState({
     name: '',
     year: '1',
     semester: '1',
   })
-  
+
   const [editFormData, setEditFormData] = useState({
     name: '',
   })
@@ -82,6 +89,7 @@ export default function HODBatchesPage() {
       }
     } catch (error) {
       console.error('Error fetching batches:', error)
+      toast.error('Failed to load batches')
     } finally {
       setLoadingData(false)
     }
@@ -95,24 +103,25 @@ export default function HODBatchesPage() {
         headers,
         body: JSON.stringify(formData),
       })
-      
+
       if (res.ok) {
         setShowAddDialog(false)
         setFormData({ name: '', year: '1', semester: '1' })
         fetchBatches()
+        toast.success('Batch created successfully')
       } else {
         const error = await res.json()
-        alert(error.error || 'Failed to create batch')
+        toast.error(error.error || 'Failed to create batch')
       }
     } catch (error) {
       console.error('Error creating batch:', error)
-      alert('Failed to create batch')
+      toast.error('Failed to create batch')
     }
   }
 
   const handleEditBatch = async () => {
     if (!selectedBatch) return
-    
+
     try {
       const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch(`/api/hod/batches?id=${selectedBatch.id}`, {
@@ -120,40 +129,81 @@ export default function HODBatchesPage() {
         headers,
         body: JSON.stringify(editFormData),
       })
-      
+
       if (res.ok) {
         setShowEditDialog(false)
         setSelectedBatch(null)
         fetchBatches()
+        toast.success('Batch updated successfully')
       } else {
         const error = await res.json()
-        alert(error.error || 'Failed to update batch')
+        toast.error(error.error || 'Failed to update batch')
       }
     } catch (error) {
       console.error('Error updating batch:', error)
-      alert('Failed to update batch')
+      toast.error('Failed to update batch')
     }
   }
 
   const handleDeleteBatch = async (batchId: string) => {
     if (!confirm('Are you sure you want to delete this batch?')) return
-    
+
     try {
       const headers = await getAuthHeaders(firebaseUser)
       const res = await fetch(`/api/hod/batches?id=${batchId}`, {
         method: 'DELETE',
         headers,
       })
-      
+
       if (res.ok) {
         fetchBatches()
+        toast.success('Batch deleted successfully')
       } else {
         const error = await res.json()
-        alert(error.error || 'Failed to delete batch')
+        toast.error(error.error || 'Failed to delete batch')
       }
     } catch (error) {
       console.error('Error deleting batch:', error)
-      alert('Failed to delete batch')
+      toast.error('Failed to delete batch')
+    }
+  }
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedBatch || !e.target.files?.[0]) return
+
+    const file = e.target.files[0]
+    // Validate file type (PDF or Image)
+    if (!file.type.includes('pdf') && !file.type.includes('image')) {
+      toast.error('Only PDF or Image files are allowed')
+      return
+    }
+
+    setUploading(true)
+    try {
+      const storageRef = ref(storage, `timetables/${selectedBatch.id}/${Date.now()}_${file.name}`)
+      await uploadBytes(storageRef, file)
+      const downloadUrl = await getDownloadURL(storageRef)
+
+      // API Update
+      const headers = await getAuthHeaders(firebaseUser)
+      const res = await fetch(`/api/hod/batches?id=${selectedBatch.id}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ timetableUrl: downloadUrl })
+      })
+
+      if (res.ok) {
+        setShowUploadDialog(false)
+        fetchBatches()
+        toast.success('Timetable uploaded successfully')
+      } else {
+        toast.error('Failed to link timetable to batch')
+      }
+    } catch (error) {
+      console.error('Upload error:', error)
+      toast.error('Failed to upload timetable')
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -163,6 +213,11 @@ export default function HODBatchesPage() {
       name: batch.name,
     })
     setShowEditDialog(true)
+  }
+
+  const openUploadDialog = (batch: Batch) => {
+    setSelectedBatch(batch)
+    setShowUploadDialog(true)
   }
 
   const columns = [
@@ -182,6 +237,21 @@ export default function HODBatchesPage() {
       ),
     },
     {
+      key: 'timetable',
+      header: 'Timetable',
+      render: (b: Batch) => (
+        <div>
+          {b.timetableUrl ? (
+            <a href={b.timetableUrl} target="_blank" rel="noopener noreferrer" className="flex items-center text-neon-lime hover:underline text-sm">
+              <FileText className="w-4 h-4 mr-1" /> View
+            </a>
+          ) : (
+            <span className="text-white/30 text-sm">Not Uploaded</span>
+          )}
+        </div>
+      )
+    },
+    {
       key: 'students',
       header: 'Enrolled Students',
       render: (b: Batch) => (
@@ -192,42 +262,38 @@ export default function HODBatchesPage() {
       ),
     },
     {
-      key: 'created',
-      header: 'Created',
-      render: (b: Batch) => (
-        <div className="text-white/50 text-sm">
-          {new Date(b.createdAt).toLocaleDateString('en-IN')}
-        </div>
-      ),
-    },
-    {
       key: 'actions',
       header: 'Actions',
       render: (b: Batch) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="text-white">
-              <MoreVertical className="w-4 h-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="bg-charcoal border-white/10">
-            <DropdownMenuItem
-              onClick={() => openEditDialog(b)}
-              className="text-white hover:bg-white/10 cursor-pointer"
-            >
-              <Pencil className="w-4 h-4 mr-2" />
-              Edit Name
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => handleDeleteBatch(b.id)}
-              className="text-red-400 hover:bg-white/10 cursor-pointer"
-              disabled={b._count.enrollments > 0}
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" className="h-8 border-neon-lime/50 text-neon-lime hover:bg-neon-lime/10" onClick={() => openUploadDialog(b)}>
+            <Upload className="w-3 h-3 mr-1" /> Upload TimeTable
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="text-white">
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="bg-charcoal border-white/10">
+              <DropdownMenuItem
+                onClick={() => openEditDialog(b)}
+                className="text-white hover:bg-white/10 cursor-pointer"
+              >
+                <Pencil className="w-4 h-4 mr-2" />
+                Edit Name
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleDeleteBatch(b.id)}
+                className="text-red-400 hover:bg-white/10 cursor-pointer"
+                disabled={b._count.enrollments > 0}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       ),
     },
   ]
@@ -373,6 +439,45 @@ export default function HODBatchesPage() {
                 className="bg-neon-lime text-obsidian hover:bg-neon-lime/90"
               >
                 Save Changes
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Upload Timetable Dialog */}
+      <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+        <DialogContent className="bg-charcoal border-white/10 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle>Upload Timetable</DialogTitle>
+            <DialogDescription className="text-white/50">
+              Upload PDF or Image for {selectedBatch?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label>Select File</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="file"
+                  accept="application/pdf,image/*"
+                  onChange={handleFileUpload}
+                  className="bg-white/5 border-white/10 text-white cursor-pointer"
+                  disabled={uploading}
+                />
+              </div>
+              {uploading && <div className="text-sm text-neon-lime flex items-center gap-2 mt-2">
+                <Loader2 className="w-3 h-3 animate-spin" /> Uploading...
+              </div>}
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <Button
+                variant="outline"
+                onClick={() => setShowUploadDialog(false)}
+                className="border-white/10 text-white"
+                disabled={uploading}
+              >
+                Cancel
               </Button>
             </div>
           </div>

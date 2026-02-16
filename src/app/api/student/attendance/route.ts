@@ -24,7 +24,6 @@ export async function GET(request: NextRequest) {
         }
       },
       orderBy: { date: 'desc' },
-      take: 100,
     })
 
     return NextResponse.json(attendance)

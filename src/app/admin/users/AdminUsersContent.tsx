@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Users, Search, GraduationCap, UserCog, Shield, Plus, Edit2, Trash2, X } from 'lucide-react'
+import { Users, Search, GraduationCap, UserCog, Shield, Plus, Edit2, Trash2, X, Upload } from 'lucide-react'
 
 interface Department {
   id: string
@@ -285,6 +285,14 @@ export default function AdminUsersContent() {
           >
             <Plus className="w-4 h-4 mr-2" />
             Create User
+          </Button>
+          <Button
+            onClick={() => router.push('/admin/users/bulk')}
+            variant="outline"
+            className="ml-2 border-neon-lime/20 text-neon-lime hover:bg-neon-lime/10"
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Bulk Import
           </Button>
         </div>
 

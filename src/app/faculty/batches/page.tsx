@@ -13,6 +13,7 @@ interface Batch {
     name: string
     year: number
     semester: number
+    timetableUrl?: string | null
 }
 
 export default function FacultyBatches() {
@@ -58,14 +59,26 @@ export default function FacultyBatches() {
                         {batches.map((batch) => (
                             <Card key={batch.id} className="bg-charcoal border-white/5">
                                 <CardContent className="pt-6">
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className="h-10 w-10 rounded-lg bg-neon-lime/10 flex items-center justify-center">
-                                            <Users className="h-5 w-5 text-neon-lime" />
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-10 w-10 rounded-lg bg-neon-lime/10 flex items-center justify-center">
+                                                <Users className="h-5 w-5 text-neon-lime" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-white font-medium">{batch.name}</h3>
+                                                <p className="text-white/50 text-sm">Year {batch.year} - Sem {batch.semester}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h3 className="text-white font-medium">{batch.name}</h3>
-                                            <p className="text-white/50 text-sm">Year {batch.year} - Sem {batch.semester}</p>
-                                        </div>
+                                        {batch.timetableUrl && (
+                                            <a
+                                                href={batch.timetableUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-xs bg-neon-lime/10 text-neon-lime px-3 py-1.5 rounded-full hover:bg-neon-lime/20 transition-colors"
+                                            >
+                                                View Timetable
+                                            </a>
+                                        )}
                                     </div>
                                 </CardContent>
                             </Card>

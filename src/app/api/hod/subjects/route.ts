@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     const authResult = await verifyRole(request, ['HOD'])
-    
+
     if (!authResult) {
       return NextResponse.json({ error: 'Forbidden - HOD access required' }, { status: 403 })
     }
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const authResult = await verifyRole(request, ['HOD'])
-    
+
     if (!authResult) {
       return NextResponse.json({ error: 'Forbidden - HOD access required' }, { status: 403 })
     }
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, code, batchId, facultyId } = body
+    const { name, code, batchId, facultyId, credits, type, electiveGroupId } = body
 
     if (!name || !code || !batchId) {
       return NextResponse.json({ error: 'Name, code, and batch are required' }, { status: 400 })
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid batch for your department' }, { status: 400 })
     }
 
-    // Verify faculty belongs to HOD's department (if provided)
+    // Verify faculty
     if (facultyId) {
       const faculty = await prisma.user.findFirst({
         where: { id: facultyId, role: 'FACULTY', departmentId },
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Check if subject code already exists for this batch
+    // Check duplicate code in batch
     const existingSubject = await prisma.subject.findFirst({
       where: { code, batchId },
     })
@@ -104,6 +104,9 @@ export async function POST(request: NextRequest) {
         departmentId,
         batchId,
         facultyId: facultyId || null,
+        credits: credits ? parseInt(credits) : 3,
+        type: type || 'CORE',
+        electiveGroupId: type === 'ELECTIVE' ? electiveGroupId : null,
       },
       include: {
         department: { select: { name: true, code: true } },
@@ -119,5 +122,77 @@ export async function POST(request: NextRequest) {
       { error: error.message || 'Failed to create subject' },
       { status: 500 }
     )
+  }
+}
+
+// PUT - Update subject
+export async function PUT(request: NextRequest) {
+  try {
+    const authResult = await verifyRole(request, ['HOD'])
+    if (!authResult) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    if (!id) return NextResponse.json({ error: 'Subject ID required' }, { status: 400 })
+
+    const { prismaUser: user } = authResult
+    const departmentId = user.departmentId
+
+    // Verify subject
+    const existingSubject = await prisma.subject.findUnique({ where: { id } })
+    if (!existingSubject || existingSubject.departmentId !== departmentId) {
+      return NextResponse.json({ error: 'Subject not found or unauthorized' }, { status: 404 })
+    }
+
+    const body = await request.json()
+    const { name, code, facultyId, credits, type, electiveGroupId } = body
+
+    const updateData: any = {}
+    if (name) updateData.name = name
+    if (code) updateData.code = code
+    if (facultyId !== undefined) updateData.facultyId = facultyId
+    if (credits) updateData.credits = parseInt(credits)
+    if (type) updateData.type = type
+    if (type === 'ELECTIVE' && electiveGroupId) updateData.electiveGroupId = electiveGroupId
+    else if (type === 'CORE') updateData.electiveGroupId = null
+
+    const updatedSubject = await prisma.subject.update({
+      where: { id },
+      data: updateData,
+      include: {
+        faculty: { select: { id: true, fullName: true } }
+      }
+    })
+
+    return NextResponse.json(updatedSubject)
+  } catch (error) {
+    console.error('Update subject error:', error)
+    return NextResponse.json({ error: 'Failed to update subject' }, { status: 500 })
+  }
+}
+
+// DELETE - Delete subject
+export async function DELETE(request: NextRequest) {
+  try {
+    const authResult = await verifyRole(request, ['HOD'])
+    if (!authResult) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    if (!id) return NextResponse.json({ error: 'Subject ID required' }, { status: 400 })
+
+    const { prismaUser: user } = authResult
+    const departmentId = user.departmentId
+
+    const existingSubject = await prisma.subject.findUnique({ where: { id } })
+    if (!existingSubject || existingSubject.departmentId !== departmentId) {
+      return NextResponse.json({ error: 'Subject not found or unauthorized' }, { status: 404 })
+    }
+
+    await prisma.subject.delete({ where: { id } })
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Delete subject error:', error)
+    return NextResponse.json({ error: 'Failed to delete subject' }, { status: 500 })
   }
 }
