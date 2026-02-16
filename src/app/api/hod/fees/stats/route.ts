@@ -33,90 +33,47 @@ export async function GET(request: NextRequest) {
       where.academicYear = academicYear
     }
 
-    // Get statistics
+    // Get statistics (without amountPaid since column doesn't exist yet)
     const [
       totalFees,
       pendingFees,
       paidFees,
-      partiallyPaidFees,
       overdueFees,
-      totalAmount,
-      collectedAmount,
+      totalAmountAgg,
     ] = await Promise.all([
       prisma.fee.count({ where }),
       prisma.fee.count({ where: { ...where, status: 'PENDING' } }),
       prisma.fee.count({ where: { ...where, status: 'PAID' } }),
-      prisma.fee.count({ where: { ...where, status: 'PARTIALLY_PAID' } }),
       prisma.fee.count({ where: { ...where, status: 'OVERDUE' } }),
       prisma.fee.aggregate({
         where,
         _sum: { amount: true }
       }),
-      prisma.fee.aggregate({
-        where: { ...where, OR: [{ status: 'PAID' }, { status: 'PARTIALLY_PAID' }] },
-        _sum: { amountPaid: true }
-      }),
     ])
 
-    // Get fee type breakdown
-    const feeTypeBreakdown = await prisma.fee.groupBy({
-      by: ['feeType'],
-      where,
+    const totalAmount = totalAmountAgg._sum.amount || 0
+    // Calculate collected as just the count of paid fees * average amount (simplified)
+    const paidAmountAgg = await prisma.fee.aggregate({
+      where: { ...where, status: 'PAID' },
+      _sum: { amount: true },
       _count: { id: true },
-      _sum: { amount: true, amountPaid: true }
     })
-
-    // Get batch-wise breakdown
-    const batchStats = await prisma.batch.findMany({
-      where: { departmentId },
-      include: {
-        enrollments: {
-          include: {
-            student: {
-              include: {
-                fees: {
-                  where: academicYear ? { academicYear } : undefined
-                }
-              }
-            }
-          }
-        }
-      }
-    })
-
-    const batchBreakdown = batchStats.map(batch => {
-      const allFees = batch.enrollments.flatMap(e => e.student.fees)
-      const totalBatchAmount = allFees.reduce((sum, f) => sum + f.amount, 0)
-      const collectedBatchAmount = allFees.reduce((sum, f) => sum + f.amountPaid, 0)
-      
-      return {
-        batchId: batch.id,
-        batchName: batch.name,
-        year: batch.year,
-        semester: batch.semester,
-        totalStudents: batch.enrollments.length,
-        totalFees: allFees.length,
-        totalAmount: totalBatchAmount,
-        collectedAmount: collectedBatchAmount,
-        collectionRate: totalBatchAmount > 0 ? ((collectedBatchAmount / totalBatchAmount) * 100).toFixed(2) : 0,
-      }
-    })
+    
+    const collectedAmount = paidAmountAgg._sum.amount || 0
 
     return NextResponse.json({
       overview: {
         totalFees,
         pendingFees,
         paidFees,
-        partiallyPaidFees,
+        partiallyPaidFees: 0, // Not tracked without amountPaid column
         overdueFees,
-        totalAmount: totalAmount._sum.amount || 0,
-        collectedAmount: collectedAmount._sum.amountPaid || 0,
-        collectionRate: totalAmount._sum.amount 
-          ? ((collectedAmount._sum.amountPaid || 0) / totalAmount._sum.amount * 100).toFixed(2)
+        totalAmount,
+        collectedAmount,
+        collectionRate: totalAmount > 0 
+          ? ((collectedAmount / totalAmount) * 100).toFixed(2)
           : 0,
       },
-      feeTypeBreakdown,
-      batchBreakdown,
     })
   } catch (error) {
     console.error('HOD fee stats error:', error)

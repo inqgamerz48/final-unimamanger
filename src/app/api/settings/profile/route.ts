@@ -51,22 +51,8 @@ export async function PUT(request: NextRequest) {
       }
     })
 
-    // Update bio in user settings if provided
-    if (bio !== undefined) {
-      await prisma.userSettings.upsert({
-        where: { userId: user.id },
-        update: { bio },
-        create: {
-          userId: user.id,
-          bio,
-          notifications: true,
-          emailAlerts: true,
-          feeReminders: true,
-          theme: 'dark',
-          language: 'en',
-        }
-      })
-    }
+    // Note: bio is not saved since UserSettings table doesn't exist in DB
+    // This will be enabled once the database schema is migrated
 
     return NextResponse.json(updatedUser)
   } catch (error) {
